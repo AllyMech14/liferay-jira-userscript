@@ -23,6 +23,7 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 
 ### 2. Patcher Link Field
 - Automatically adds a **Patcher portal link** in the details field.  
+<img width="578" height="299" alt="image" src="https://github.com/user-attachments/assets/b981c349-0f10-4783-b36a-9863d6a2e184" />
 
 ### 3. Internal Note Highlight
 - Highlights the editor **yellow** when writing internal notes.
