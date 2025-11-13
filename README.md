@@ -1,7 +1,7 @@
 # Jira for CSEs – Userscript
 
-**Version:** 3.1  
-**Author:** Allison McGill
+**Version:** 3.2  
+**Author:** Allison McGill, Rita Schaff, Daniel Martínez Cisneros
 
 ---
 
