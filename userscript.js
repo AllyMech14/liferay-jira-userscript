@@ -113,17 +113,17 @@
     }
 
 
-    /*********** INTERNAL NOTE HIGHLIGHT ***********/
+    /*********** INTERNAL NOTE HIGHLIGHT ***********/ 
+    //written by @allymech13
+    
     function highlightEditor() {
-        const editorWrapper = document.querySelector('.css-1pd6fdd');
+        const editorWrapper = document.querySelector('.css-sox1a6');
         const editor = document.querySelector('#ak-editor-textarea');
+        const internalNoteButton = document.querySelector('#comment-editor-container-tabs-0');
 
-        // Check if this is an internal comment
-        const isInternalComment = document.querySelector(
-            '[data-testid="issue-comment-base.ui.comment.comment-visibility.comment-visibility-wrapper"]'
-        );
+        const isInternalSelected = internalNoteButton && internalNoteButton.getAttribute('aria-selected') === 'true';
 
-        if (isInternalComment) {
+        if (isInternalSelected) {
             if (editorWrapper) {
                 editorWrapper.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
                 editorWrapper.style.setProperty('border', '2px solid #FFD700', 'important'); // golden border
@@ -134,7 +134,7 @@
                 editor.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
             }
         } else {
-            // If not internal comment, remove highlight
+            //If not internal note Remove highlight
             if (editorWrapper) {
                 editorWrapper.style.removeProperty('background-color');
                 editorWrapper.style.removeProperty('border');
@@ -144,26 +144,6 @@
             }
         }
     }
-
-    // Add event listeners to buttons
-    function attachButtonListeners() {
-        // Select buttons
-        const internalNoteButton = document.querySelector('span._19pkidpf._2hwxidpf._otyridpf._18u0idpf._1i4qfg65._11c82smr._1reo15vq._18m915vq._1e0ccj1k._sudp1e54._1nmz9jpi._k48p1wq8[style*="Add internal note"]');
-        const replyCustomerButton = document.querySelector('span._19pkidpf._2hwxidpf._otyridpf._18u0idpf._1i4qfg65._11c82smr._1reo15vq._18m915vq._1e0ccj1k._sudp1e54._1nmz9jpi._k48p1wq8[style*="Reply to customer"]');
-
-        if (internalNoteButton) {
-            internalNoteButton.addEventListener('click', () => {
-                setTimeout(highlightEditor, 100); // slight delay to let editor load
-            });
-        }
-
-        if (replyCustomerButton) {
-            replyCustomerButton.addEventListener('click', () => {
-                setTimeout(highlightEditor, 100); // remove highlight if internal note not present
-            });
-        }
-    }
-
     /*********** INTERNAL NOTE - REMOVE SIGNATURE ***********/
 
     // Select the "Add internal note" button
