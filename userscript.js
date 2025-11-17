@@ -8,7 +8,9 @@
 // @match        https://liferay.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
 // @downloadURL  https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // ==/UserScript==
 
 (function() {
@@ -114,7 +116,7 @@
 
 
     /*********** INTERNAL NOTE HIGHLIGHT ***********/ 
-    //written by @allymech13
+    //written by @allymech14
     
     function highlightEditor() {
         const editorWrapper = document.querySelector('.css-sox1a6');
@@ -175,17 +177,97 @@
         }
     }
 
+/* 
+===============================================================================
+  OPTIONAL FEATURES 
+  1. Disable JIRA Shortcuts
+  2. Open Tickets In a New Tab
+
+  How to Use: 
+  1. Go to TamperMonkey Icon in the browser
+  2. Enable/Disable Features
+  3. Refresh Jira for changes to change affect
+
+  Note: The features are disabled by default. 
+
+===============================================================================
+*/
+    /*********** TOGGLE MENU ***********/
+    const DEFAULTS = {
+        disableShortcuts: false,
+        bgTabOpen: false
+    };
+
+    const S = {
+        disableShortcuts: GM_getValue("disableShortcuts", DEFAULTS.disableShortcuts),
+        bgTabOpen: GM_getValue("bgTabOpen", DEFAULTS.bgTabOpen),
+    };
+    
+    function registerMenu() {
+        GM_registerMenuCommand(
+            `Disable Jira Shortcuts: ${S.disableShortcuts ? "ON" : "OFF"}`,
+            () => toggleSetting("disableShortcuts")
+        );
+        GM_registerMenuCommand(
+            `Open Tickets in New Tab: ${S.bgTabOpen ? "ON" : "OFF"}`,
+            () => toggleSetting("bgTabOpen")
+        );
+    }
+
+    function toggleSetting(key) {
+        S[key] = !S[key];
+        GM_setValue(key, S[key]);
+        alert(`Toggled ${key} → ${S[key] ? "ON" : "OFF"}.\nReload Jira for full effect.`);
+    }
+
+    /*********** OPEN TICKETS IN A NEW TAB ***********/
+    function backgroundTabLinks() {
+        if (!S.bgTabOpen) return;
+        document.addEventListener("click", backgroundTabHandler, true);
+    }
+
+    function backgroundTabHandler(e) {
+        const link = e.target.closest("a");
+        if (!link?.href) return;
+        if (!/\/browse\/[A-Z0-9]+-\d+/i.test(link.href)) return;
+        if (e.ctrlKey || e.metaKey || e.button !== 0) return;
+
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        window.open(link.href, "_blank");
+    }
+
+    /*********** DISABLE JIRA SHORTCUTS ***********/
+    function disableShortcuts() {
+        if (!S.disableShortcuts) return;
+
+        window.addEventListener('keydown', blockShortcuts, true);
+        window.addEventListener('keypress', stopEventPropagation, true);
+        window.addEventListener('keyup', stopEventPropagation, true);
+    }
+
+    function blockShortcuts(e) {
+        if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+        e.stopImmediatePropagation();
+    }
+
+    function stopEventPropagation(e) {
+        e.stopImmediatePropagation();
+    }
+
     /*********** INITIAL RUN + OBSERVERS ***********/
     applyColors();
     createPatcherField();
     highlightEditor();
     removeSignatureFromInternalNote();
+    registerMenu();
+    disableShortcuts();
+    backgroundTabLinks();
 
     const observer = new MutationObserver(() => {
         applyColors();
         createPatcherField();
         highlightEditor();
-        attachButtonListeners();
         removeSignatureFromInternalNote();
     });
     observer.observe(document.body, { childList: true, subtree: true });
