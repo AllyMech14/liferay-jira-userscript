@@ -18,16 +18,18 @@
 
     // Map of colors by normalized status (all lowercase, spaces removed)
     const statusColors = {
-        'pending': '#8fb8f6',
-        'awaitinghelp': '#d8a0f7',
-        'withproductteam': '#d8a0f7',
-        'withsre': '#d8a0f7',
-        'inprogress': '#fd9891',
-        'solutionproposed': '#FFEB3B',
-        'solutionaccepted': '#FFEB3B',
-        'closed': '#dddee1',
-        'inactive': '#FFEB3B',
-        'new': '#FFEB3B'
+        'pending': { bg: '#1378d0', color: '#e6f2fb' },
+        'awaitinghelp': { bg: '#7c29a4', color: '#fff' },
+        'withproductteam': { bg: '#7c29a4', color: '#fff' },
+        'withsre': { bg: '#7c29a4', color: '#fff' },
+        'inprogress': { bg: '#cc2d24', color: '#fff' },
+        
+        // unchanged statuses below
+        'solutionproposed': { bg: '#7d868e', color: '#fff' },
+        'solutionaccepted': { bg: '#28a745', color: '#fff' },
+        'closed': { bg: '#dddee1', color: '#000' },
+        'inactive': { bg: '#FFEB3B', color: '#000' },
+        'new': { bg: '#FFEB3B', color: '#000' }
     };
 
     // Normalize any status text (remove spaces, punctuation, lowercase)
@@ -41,22 +43,54 @@
     // Apply colors dynamically
     function applyColors() {
         // Select both types of elements: dynamic class + data-testid containing "status"
-        const elements = document.querySelectorAll('._bfhk1ymo,.jira-issue-status-lozenge, [data-testid*="issue.fields.status.common.ui.status-lozenge.3"]');
+        const elements = document.querySelectorAll(
+        '._bfhk1ymo,' +
+        '.jira-issue-status-lozenge,' +
+        '[data-testid*="status-lozenge"],' +
+        'span[title],' +
+        'div[aria-label*="Status"],' +
+        '[data-testid*="issue-status"] span,' +
+        '.css-1mh9skp,' +
+        '.css-14er0c4,' +
+        '.css-1ei6h1c'
+    );
 
+        // Apply base lozenge sizing & centering to ALL statuses
         elements.forEach(el => {
             const rawText = (el.innerText || el.textContent || '').trim();
             const key = normalizeStatus(rawText);
-            const color = statusColors[key];
-            if (color) {
-                el.style.backgroundColor = color;
-                el.style.color = '#000'; // dark text for contrast
-                el.style.border = 'none';
-                el.style.padding = '2px 6px';
-                el.style.borderRadius = '4px';
-                el.style.transition = 'background-color 0.3s ease';
-            }
+            const style = statusColors[key];
+
+            // Base lozenge styling for all statuses
+            el.style.padding = '3px 4px';       // space inside the badge
+            el.style.fontSize = '1em';          // default font size
+            el.style.borderRadius = '4px';      // rounded corners
+            el.style.minHeight = '13px';        // minimum height
+            el.style.minWidth = '24px';         // minimum width
+            el.style.display = 'inline-flex';   // flex container for centering
+            el.style.alignItems = 'center';     // vertical centering
+            el.style.justifyContent = 'center'; // horizontal centering
+            el.style.lineHeight = '1';          // line height inside badge
+            el.style.boxSizing = 'border-box';  // include padding in size
+            el.style.backgroundImage = 'none';  // remove any background image
+            el.style.boxShadow = 'none';
+
+
+        // Apply custom colors if status matched
+        if (style) {
+
+            el.style.setProperty("background", style.bg, "important"); // background color
+            el.style.setProperty("color", style.color, "important");   // text color
+            el.style.setProperty("font-weight", "bold", "important");  // bold text
+            el.style.setProperty("border", "none", "important");       // remove border
+
+
+        }
+            // Ensure nested spans don’t override main badge styles
             el.querySelectorAll('span').forEach(span => {
-                span.style.background = 'transparent';
+                span.style.setProperty("background", "transparent", "important"); // transparent bg
+                span.style.setProperty("color", "inherit", "important");          // inherit badge text color
+                span.style.setProperty("font-size", "1em", "important");          // force font size
             });
         });
     }
@@ -115,9 +149,9 @@
     }
 
 
-    /*********** INTERNAL NOTE HIGHLIGHT ***********/ 
+    /*********** INTERNAL NOTE HIGHLIGHT ***********/
     //written by @allymech14
-    
+
     function highlightEditor() {
         const editorWrapper = document.querySelector('.css-sox1a6');
         const editor = document.querySelector('#ak-editor-textarea');
@@ -130,6 +164,9 @@
                 editorWrapper.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
                 editorWrapper.style.setProperty('border', '2px solid #FFD700', 'important'); // golden border
                 editorWrapper.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
+
+                //Added back color font for Internal Note on Dark Mode
+                editorWrapper.style.setProperty('color', '#000000', 'important'); // back color font
             }
             if (editor) {
                 editor.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
@@ -177,18 +214,18 @@
         }
     }
 
-/* 
+/*
 ===============================================================================
-  OPTIONAL FEATURES 
+  OPTIONAL FEATURES
   1. Disable JIRA Shortcuts
   2. Open Tickets In a New Tab
 
-  How to Use: 
+  How to Use:
   1. Go to TamperMonkey Icon in the browser
   2. Enable/Disable Features
   3. Refresh Jira for changes to change affect
 
-  Note: The features are disabled by default. 
+  Note: The features are disabled by default.
 
 ===============================================================================
 */
@@ -202,7 +239,7 @@
         disableShortcuts: GM_getValue("disableShortcuts", DEFAULTS.disableShortcuts),
         bgTabOpen: GM_getValue("bgTabOpen", DEFAULTS.bgTabOpen),
     };
-    
+
     function registerMenu() {
         GM_registerMenuCommand(
             `Disable Jira Shortcuts: ${S.disableShortcuts ? "ON" : "OFF"}`,
