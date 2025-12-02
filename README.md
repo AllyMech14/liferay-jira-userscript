@@ -12,7 +12,8 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 1. Adding Status Colors for easier readability.  
 2. Inserting a link to Patcher portal in the ticket details.  
 3. Highlighting the editor when writing internal notes for quick visual distinction.
-4. Optional Features controlled by Toggles (via the user script menu)
+4. Inserting a Link to Customer Portal in the ticket details.
+5. Optional Features controlled by Toggles (via the user script menu)
 
 ---
 
@@ -33,7 +34,8 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 
 ### 4. Customer Portal Link
 - Automatically adds a Customer portal link in the details field. 
-<img width="1023" height="319" alt="image" src="https://github.com/user-attachments/assets/e71499ec-f1cd-476d-ba06-19a1b1b95bc6" />
+<img width="583" height="99" alt="image" src="https://github.com/user-attachments/assets/1b2d8d10-e8f0-4900-b48c-fd3631f196ab" />
+
 
 
 ## Optional Features can be toggled on or off using the userscript menu accessible via your userscript manager
