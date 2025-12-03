@@ -1,6 +1,6 @@
 # Jira for CSEs – Userscript
 
-**Version:** 3.3
+**Version:** 3.5
 **Author:** Allison McGill, Rita Schaff, Daniel Martínez Cisneros
 
 ---
@@ -10,7 +10,7 @@
 This userscript adds quality of life updates to Jira interface for Customer Support Engineers (CSEs) by:
 
 1. Adding Status Colors for easier readability.  
-2. Inserting a link to Patcher portal in the ticket details.  
+2. Inserting a link to Patcher portal, Customer portal and link to tickets in the ticket details.  
 3. Highlighting the editor when writing internal notes for quick visual distinction.
 4. Inserting a Link to Customer Portal in the ticket details.
 5. Optional Features controlled by Toggles (via the user script menu)
@@ -35,6 +35,11 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 ### 4. Customer Portal Link
 - Automatically adds a Customer portal link in the details field. 
 <img width="583" height="99" alt="image" src="https://github.com/user-attachments/assets/1b2d8d10-e8f0-4900-b48c-fd3631f196ab" />
+
+
+### 5. Account tickets Link
+- Automatically adds a link to tickets for the account in the details field. 
+<img width="583" height="99" alt="image" src="" />
 
 
 

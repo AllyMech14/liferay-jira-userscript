@@ -3,8 +3,8 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.4
-// @description  Jira statuses + Patcher and CP Link field + Internal Note highlight
+// @version      3.5
+// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight
 // @match        https://liferay.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
 // @downloadURL  https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
@@ -24,7 +24,7 @@
         'withproductteam': { bg: '#7c29a4', color: '#fff' },
         'withsre': { bg: '#7c29a4', color: '#fff' },
         'inprogress': { bg: '#cc2d24', color: '#fff' },
-        
+
         // unchanged statuses below
         'solutionproposed': { bg: '#7d868e', color: '#fff' },
         'solutionaccepted': { bg: '#28a745', color: '#fff' },
@@ -45,16 +45,16 @@
     function applyColors() {
         // Select both types of elements: dynamic class + data-testid containing "status"
         const elements = document.querySelectorAll(
-        '._bfhk1ymo,' +
-        '.jira-issue-status-lozenge,' +
-        '[data-testid*="status-lozenge"],' +
-        'span[title],' +
-        'div[aria-label*="Status"],' +
-        '[data-testid*="issue-status"] span,' +
-        '.css-1mh9skp,' +
-        '.css-14er0c4,' +
-        '.css-1ei6h1c'
-    );
+            '._bfhk1ymo,' +
+            '.jira-issue-status-lozenge,' +
+            '[data-testid*="status-lozenge"],' +
+            'span[title],' +
+            'div[aria-label*="Status"],' +
+            '[data-testid*="issue-status"] span,' +
+            '.css-1mh9skp,' +
+            '.css-14er0c4,' +
+            '.css-1ei6h1c'
+        );
 
         // Apply base lozenge sizing & centering to ALL statuses
         elements.forEach(el => {
@@ -77,16 +77,16 @@
             el.style.boxShadow = 'none';
 
 
-        // Apply custom colors if status matched
-        if (style) {
+            // Apply custom colors if status matched
+            if (style) {
 
-            el.style.setProperty("background", style.bg, "important"); // background color
-            el.style.setProperty("color", style.color, "important");   // text color
-            el.style.setProperty("font-weight", "bold", "important");  // bold text
-            el.style.setProperty("border", "none", "important");       // remove border
+                el.style.setProperty("background", style.bg, "important"); // background color
+                el.style.setProperty("color", style.color, "important");   // text color
+                el.style.setProperty("font-weight", "bold", "important");  // bold text
+                el.style.setProperty("border", "none", "important");       // remove border
 
 
-        }
+            }
             // Ensure nested spans don’t override main badge styles
             el.querySelectorAll('span').forEach(span => {
                 span.style.setProperty("background", "transparent", "important"); // transparent bg
@@ -101,6 +101,70 @@
         const match = title.match(/\[([A-Z]+)-\d+\]/);
         return match ? match[1] : null;
     }
+
+
+    /*********** JIRA FILTER LINK FIELD ***********/
+
+    // Utility function to construct the Jira JQL filter URL
+    function getJiraFilterHref(accountCode) {
+        if (!accountCode) return null;
+
+        // The base JQL query string containing the <CODE> placeholder
+        const jiraFilterByAccountCode = 'https://liferay.atlassian.net/issues/?jql=%22account%20code%5Bshort%20text%5D%22%20~%20%22<CODE>%22%20and%20project%20%3D%20LRHC%20ORDER%20BY%20created%20DESC';
+
+        // Replace the placeholder <CODE> with the actual account code
+        return jiraFilterByAccountCode.replace('<CODE>', accountCode);
+    }
+
+    function createJiraFilterLinkField() {
+        // Select the original field wrapper to clone its structure
+        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        if (!originalField) return;
+
+        // We insert the new field after the original Patcher Link field
+        const referenceField = document.querySelector('.patcher-link-field');
+        if (!referenceField) return; // Ensure the Patcher field exists first
+
+        // Prevent duplicates
+        if (document.querySelector('.jira-filter-link-field')) return;
+
+        const accountCode = getAccountCode();
+        const clone = originalField.cloneNode(true);
+
+        // Cleanup: Remove the duplicated "Assign to Me" button
+        clone.querySelector('[data-testid="issue-view-layout-assignee-field.ui.assign-to-me"]')?.remove();
+
+        // UNIQUE CLASS AND HEADING
+        clone.classList.add('jira-filter-link-field');
+        const heading = clone.querySelector('h3');
+        if (heading) heading.textContent = 'Account Filter'; // Descriptive Title
+
+        const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
+        if (contentContainer) contentContainer.innerHTML = '';
+
+        // LINK CREATION
+        const link = document.createElement('a');
+        if (accountCode) {
+            // Use the new function to generate the Jira filter URL
+            link.href = getJiraFilterHref(accountCode);
+            link.target = '_blank';
+            link.textContent = accountCode;
+        } else {
+            // Handle case where Account Code is missing
+            link.textContent = 'Account Code Missing';
+            link.style.color = '#999';
+        }
+
+        // Styles
+        link.style.display = 'block';
+        link.style.marginTop = '5px';
+        link.style.textDecoration = 'underline';
+        contentContainer?.appendChild(link);
+
+        // Insert the new field after the Patcher Link field
+        referenceField.parentNode.insertBefore(clone, referenceField.nextSibling);
+    }
+
 
     /*********** PATCHER LINK FIELD ***********/
     function getPatcherPortalAccountsHREF(path, params) {
@@ -119,7 +183,7 @@
 
     function createPatcherField() {
         const ticketType = getTicketType();
-        if (!['LRHC','LRFLS'].includes(ticketType)) return; // Only run for allowed types
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
         const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
         if (!originalField) return;
@@ -261,7 +325,7 @@
     // 6. Main function to create and insert the field (handles UI updates only)
     async function createCustomerPortalField() {
         const ticketType = getTicketType();
-        if (!['LRHC','LRFLS'].includes(ticketType)) return; // Only run for allowed types
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
         const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
         if (!originalField || document.querySelector('.customer-portal-link-field')) return;
@@ -383,20 +447,20 @@
         }
     }
 
-/*
-  OPTIONAL FEATURES
-  1. Disable JIRA Shortcuts
-  2. Open Tickets In a New Tab
-
-  How to Use:
-  1. Go to TamperMonkey Icon in the browser
-  2. Enable/Disable Features
-  3. Refresh Jira for changes to change affect
-
-  Note: The features are disabled by default.
-
-    ===============================================================================
-    */
+    /*
+      OPTIONAL FEATURES
+      1. Disable JIRA Shortcuts
+      2. Open Tickets In a New Tab
+    
+      How to Use:
+      1. Go to TamperMonkey Icon in the browser
+      2. Enable/Disable Features
+      3. Refresh Jira for changes to change affect
+    
+      Note: The features are disabled by default.
+    
+        ===============================================================================
+        */
     /*********** TOGGLE MENU ***********/
     const DEFAULTS = {
         disableShortcuts: false,
@@ -464,6 +528,7 @@
     async function updateUI() {
         applyColors();
         createPatcherField();
+        createJiraFilterLinkField();
         highlightEditor();
         await createCustomerPortalField();
         removeSignatureFromInternalNote();
