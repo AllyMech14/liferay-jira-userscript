@@ -3,9 +3,10 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.6
-// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight
+// @version      3.7
+// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info
 // @match        https://liferay.atlassian.net/*
+// @match        https://liferay-sandbox-424.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
 // @downloadURL  https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
 // @grant        GM_getValue
@@ -460,9 +461,9 @@
         highPriorityIcons.forEach(icon => {
             // Check if the flame icon has already been added to avoid duplicates
             if (icon.closest('.flame-icon-wrapper')) {
-                return; 
+                return;
             }
-            
+
             // Create the flame icon element
             const flameIcon = document.createElement('span');
             flameIcon.textContent = '🔥'; // The flame emoji
@@ -474,33 +475,86 @@
             wrapper.style.display = 'inline-flex';
             wrapper.style.alignItems = 'center';
 
-            // Check if the icon is already wrapped, and if so, unwrap it first 
+            // Check if the icon is already wrapped, and if so, unwrap it first
             // to place the new wrapper correctly (optional defensive coding)
             const parent = icon.parentNode;
-            
+
             // Move the original icon into the wrapper
             wrapper.appendChild(icon.cloneNode(true)); // Clone the icon to move it
-            
+
             // Add the flame icon to the wrapper
             wrapper.appendChild(flameIcon);
 
             // Replace the original icon with the new wrapper
-            parent.replaceChild(wrapper, icon); 
+            parent.replaceChild(wrapper, icon);
         });
     }
+
+    /*********** NEW FEATURE: EXPAND CCC ACCOUNT INFO ***********/
+    function expandCCCAccountInfo() {
+        // 1. Find the specific Header "CCC Account Info"
+        // We use text content to find the specific header, ignoring ID weirdness
+        const headers = document.querySelectorAll('h3');
+        let targetHeader = null;
+
+        for (let h of headers) {
+            if (h.textContent.trim() === "CCC Account Info") {
+                targetHeader = h;
+                break;
+            }
+        }
+
+        if (!targetHeader) return; // Header not loaded yet
+
+        // 2. Find the card directly associated with this header
+        // We look for the first object card that appears AFTER this header in the DOM
+        const allCards = document.querySelectorAll('[data-testid="issue-field-cmdb-object-lazy.ui.card.cmdb-object-card"]');
+        let targetCard = null;
+
+        for (let card of allCards) {
+            if (targetHeader.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                targetCard = card;
+                break; // Stop at the first card found
+            }
+        }
+
+        if (!targetCard) return; // Card not loaded yet
+
+        // 3. Find the Expand Button
+        const buttons = targetCard.querySelectorAll('button');
+        let expandBtn = null;
+
+        buttons.forEach(btn => {
+            const testId = btn.getAttribute('data-testid') || "";
+            // We want the button that ISN'T the "View Details" (graph icon) or "Edit" (pencil)
+            if (!testId.includes('button-view-details') && !testId.includes('button-edit')) {
+                expandBtn = btn;
+            }
+        });
+
+        // 4. Click logic with Mutation Guard
+        // We add a custom attribute 'data-userscript-auto-expanded' to ensure we only click it once
+        // per session/reload, preventing an infinite open/close loop.
+        if (expandBtn && !expandBtn.hasAttribute('data-userscript-auto-expanded')) {
+            expandBtn.click();
+            expandBtn.setAttribute('data-userscript-auto-expanded', 'true');
+            // console.log("Auto-expanded CCC Account Info");
+        }
+    }
+
 
     /*
       OPTIONAL FEATURES
       1. Disable JIRA Shortcuts
       2. Open Tickets In a New Tab
-    
+
       How to Use:
       1. Go to TamperMonkey Icon in the browser
       2. Enable/Disable Features
       3. Refresh Jira for changes to change affect
-    
+
       Note: The features are disabled by default.
-    
+
         ===============================================================================
         */
     /*********** TOGGLE MENU ***********/
@@ -575,6 +629,7 @@
         await createCustomerPortalField();
         removeSignatureFromInternalNote();
         addFlameIconToHighPriority();
+        expandCCCAccountInfo(); // Added this new function here
     }
 
     await updateUI();
@@ -582,6 +637,9 @@
     disableShortcuts();
     backgroundTabLinks();
 
+    // The observer handles the "Watch for object mutations" part.
+    // Since updateUI calls expandCCCAccountInfo, it will check specifically for the
+    // appearance of the card/button every time the DOM updates.
     const observer = new MutationObserver(updateUI);
     observer.observe(document.body, { childList: true, subtree: true });
 
