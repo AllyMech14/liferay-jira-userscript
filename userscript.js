@@ -629,7 +629,7 @@
         await createCustomerPortalField();
         removeSignatureFromInternalNote();
         addFlameIconToHighPriority();
-        expandCCCAccountInfo(); // Added this new function here
+        expandCCCAccountInfo();
     }
 
     await updateUI();
