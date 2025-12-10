@@ -490,7 +490,7 @@
         });
     }
 
-    /*********** NEW FEATURE: EXPAND CCC ACCOUNT INFO ***********/
+    /*********** https://liferay.atlassian.net/browse/LRSUPPORT-47251 ***********/
    function expandCCCInfo() {
         // 1. Define the headers we want to target
         const targetHeaders = [
