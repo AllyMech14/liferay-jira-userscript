@@ -613,7 +613,10 @@
     function backgroundTabHandler(e) {
         const link = e.target.closest("a");
         if (!link?.href) return;
-        if (!/\/browse\/[A-Z0-9]+-\d+/i.test(link.href)) return;
+
+        const issueLinkPattern = /^https:\/\/[^/]+\/browse\/[A-Z0-9]+-\d+$/i;
+        if (!issueLinkPattern.test(link.href)) return;
+        
         if (e.ctrlKey || e.metaKey || e.button !== 0) return;
 
         e.stopImmediatePropagation();
