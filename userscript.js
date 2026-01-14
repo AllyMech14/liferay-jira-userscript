@@ -682,7 +682,28 @@
     disableShortcuts();
     backgroundTabLinks();
 
-    const observer = new MutationObserver(updateUI);
+    const createThrottler = (callback, delay) => {
+        let pending = false;
+        let queued = false;
+        return function throttle() {
+            if (pending) {
+                queued = true;
+                return;
+            }
+            callback();
+            pending = true;
+            setTimeout(() => {
+                pending = false;
+                if (queued) {
+                    queued = false;
+                    throttle();
+                }
+            }, delay);
+        };
+    };
+
+    const throttledUpdateUI = createThrottler(() => updateUI(), 1000); // Max 1 execution / second
+    const observer = new MutationObserver(throttledUpdateUI);
     observer.observe(document.body, { childList: true, subtree: true });
 
 })();
