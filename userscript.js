@@ -561,28 +561,53 @@
         setTimeout(transformLinks, 500); //Convert links elements
     }
 
+    // Converts plain text URLs into clickable hyperlinks. 
+    // For Liferay Jira links, shows the Issue ID.
     function transformLinks() {
         const divSelector = 'div[data-testid="insight-attribute-list-text-attribute-text"]';
         const targetDiv = document.querySelector(divSelector);
     
-        if (targetDiv) {
-            targetDiv.style.whiteSpace = 'pre-wrap';
-
-            const originalText = targetDiv.textContent;
-            const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+        // Process only once
+        if (!targetDiv || targetDiv.dataset.linksProcessed) return;
     
-            const linkedHtml = originalText.replace(urlRegex, (url) => {
-                let href = url;
-                if (!url.match(/^https?:\/\//i)) {
-                    href = 'http://' + url;
+        targetDiv.style.whiteSpace = 'pre-wrap';
+        const originalText = targetDiv.textContent;
+    
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    
+        const linkedHtml = originalText.replace(urlRegex, (capturedUrl) => {
+            let cleanUrl = capturedUrl;
+            let trailingPunctuation = '';
+    
+            // Clean trailing characters
+            while (cleanUrl.length > 0 && /[).,;:?!]$/.test(cleanUrl)) {
+                const lastChar = cleanUrl.slice(-1);
+                cleanUrl = cleanUrl.slice(0, -1);
+                trailingPunctuation = lastChar + trailingPunctuation;
+            }
+    
+            if (cleanUrl.length < 4) return capturedUrl;
+    
+            let href = cleanUrl;
+            if (!cleanUrl.match(/^https?:\/\//i)) {
+                href = 'http://' + cleanUrl;
+            }
+    
+            let linkText = cleanUrl;
+            // if it is a link to a Jira issue, use its ID instead
+            if (cleanUrl.startsWith('https://liferay.atlassian.net')) {
+                const jiraIdMatch = cleanUrl.match(/\/([A-Z]+-\d+)$/);
+                if (jiraIdMatch) {
+                    linkText = jiraIdMatch[1]; // Ej: "LPP-1234"
                 }
-                return `<a href="${href}" target="_blank">${url}</a>`;
-            });
+            }
     
-            targetDiv.innerHTML = linkedHtml;
-        }
+            return `<a href="${href}" target="_blank">${linkText}</a>${trailingPunctuation}`;
+        });
+    
+        targetDiv.innerHTML = linkedHtml;
+        targetDiv.dataset.linksProcessed = "true";
     }
-
 
     /*
       OPTIONAL FEATURES
