@@ -168,9 +168,13 @@
 
      /*********** ADD COLOR TO PROPOSED SOLUTION ***********/
     function addColorToProposedSolution() {
-        const proposedSolutionDiv = document.querySelector('[data-testid="issue.views.field.rich-text.customfield_10278"]');
+               const proposedSolutionDiv = document.querySelector('[data-testid="issue.views.field.rich-text.customfield_10278"]');
+        
+        if (!proposedSolutionDiv) return;
+
         const textContent = proposedSolutionDiv.textContent.trim();
-        if (!proposedSolutionDiv || textContent === "None") return;
+
+        if (textContent === "None") return;
     
         const colorMode = document.documentElement.dataset.colorMode;
         const bgColor = (colorMode === 'dark') 
