@@ -408,18 +408,34 @@
     /*********** INTERNAL NOTE HIGHLIGHT ***********/
 
     function highlightEditor() {
-        const editorWrapper = document.querySelector('.css-sox1a6');
-        const editor = document.querySelector('#ak-editor-textarea');
-        const internalNoteButton = document.querySelector('#comment-editor-container-tabs-0');
-
+        // Check if the issue transition modal is being used
+        const transitionModal = document.querySelector('section[data-testid="issue-transition.ui.issue-transition-modal"]');
+    
+        let editorWrapper, editor, internalNoteButton;
+    
+        if (transitionModal) {
+            const commentContainer = transitionModal.querySelector('#comment-container');
+            if (commentContainer) {
+                editorWrapper = commentContainer.querySelector('.css-sox1a6');
+                editor = commentContainer.querySelector('#ak-editor-textarea') || commentContainer.querySelector('textarea');
+                internalNoteButton = document.getElementById('issue-transition-comment-editor-container-tabs-0');
+            }
+    
+        } else {
+            editorWrapper = document.querySelector('.css-sox1a6');
+            editor = document.querySelector('#ak-editor-textarea');
+            internalNoteButton = document.querySelector('#comment-editor-container-tabs-0');
+        }
+    
         const isInternalSelected = internalNoteButton && internalNoteButton.getAttribute('aria-selected') === 'true';
-
+    
         if (isInternalSelected) {
+    
             if (editorWrapper) {
                 editorWrapper.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
                 editorWrapper.style.setProperty('border', '2px solid #FFD700', 'important'); // golden border
                 editorWrapper.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
-
+    
                 //Added back color font for Internal Note on Dark Mode
                 editorWrapper.style.setProperty('color', '#000000', 'important'); // back color font
             }
@@ -437,36 +453,6 @@
             if (editor) {
                 editor.style.removeProperty('background-color');
             }
-        }
-    }
-    /*********** INTERNAL NOTE - REMOVE SIGNATURE ***********/
-
-    // Select the "Add internal note" button
-    function removeSignatureFromInternalNote() {
-        const addNoteButton = document.querySelector('button.css-yfvug5');
-
-        if (addNoteButton) {
-            addNoteButton.addEventListener('click', () => {
-                // Create a MutationObserver to watch for the target paragraph appearing
-                const observer = new MutationObserver((mutations, obs) => {
-                    const targetParagraph = document.querySelector(
-                        'p[data-prosemirror-node-name="paragraph"][data-prosemirror-node-block="true"]'
-                    );
-
-                    if (targetParagraph && targetParagraph.innerHTML.includes('Best regards')) {
-                        // Remove the paragraph
-                        targetParagraph.remove();
-                    }
-                });
-
-                // Observe the whole document (you can narrow to a specific container if you know it)
-                observer.observe(document.body, {
-                    childList: true,
-                    subtree: true,
-                });
-            });
-        } else {
-            console.warn('Add internal note button not found.');
         }
     }
 
