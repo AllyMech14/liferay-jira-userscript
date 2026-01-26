@@ -130,7 +130,6 @@
                 color: #172B4D;
                 text-align: center;
                 padding: 10px;
-                font-weight: bold;
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -142,8 +141,8 @@
 
             const linkUrl = "https://liferay.atlassian.net/wiki/spaces/SUPPORT/pages/4096557057/JSM+Agent+Overview#How-To-Publish-an-Internal-Request-to-customers";
             warningBar.innerHTML = `
-                ⚠️ Manually changing the request type to General Request will not publish the ticket by itself.
-                To avoid issues, use the automation in publish of internal requests.
+                ⚠️ Manually changing the request type to General Request <b>will not publish the ticket</b>.
+                To avoid issues, please use the <b>Publish to Customer automation</b>.
                 <a href="${linkUrl}" target="_blank" style="color: #0052CC; text-decoration: underline; margin-left: 5px;">More info here.</a>
             `;
 
