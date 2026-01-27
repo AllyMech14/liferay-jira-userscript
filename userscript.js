@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Jira For CSEs
+// @name         Jira for CSEs
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
@@ -508,6 +508,122 @@
             }
         }
     }
+     /*********** NEW FEATURE: ADD PARTNER ICON ***********/
+    
+     // Cache to prevent repeated API calls per ticket
+    const partnerCache = {
+        issueKey: null,
+        assetInfo: null,
+        hasPartner: null,
+        promise: null
+    };
+
+     // Fetch customfield_12567 (User Asset)
+    async function fetchUserInfo(issueKey) {
+        const apiUrl = `/rest/api/3/issue/${issueKey}?fields=customfield_12567`;
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error(`API failed (${res.status}) for ${apiUrl}`);
+        const data = await res.json();
+        const field = data.fields.customfield_12567?.[0];
+
+        if (!field) {
+            throw new Error('"User Asset" missing or empty on ticket.');
+        }
+
+        // Return only necessary IDs
+        return {
+            workspaceId: field.workspaceId,
+            objectId: field.objectId //user object id
+        };
+    }
+
+    //Check if Partner Entitlement exists
+    async function checkPartnerAttribute(workspaceId, objectId) {
+        const url = `/gateway/api/jsm/assets/workspace/${workspaceId}/v1/object/${objectId}?includeExtendedInfo=false`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Gateway API failed (${res.status}) for ${url}`);
+        const data = await res.json();
+
+        // Look for an attribute with name "Partner"
+        const hasPartner = (data.attributes || []).some(attr =>(attr.objectAttributeValues || []).some(val => val.referencedObject?.name === 'Partner' || val.displayValue === 'Partner'));
+        return hasPartner;
+    }
+
+    // Main function with caching/concurrency
+    async function fetchPartnerInfo(issueKey) {
+        // Use cache if available
+        if (partnerCache.issueKey === issueKey && partnerCache.hasPartner !== null) {
+            return partnerCache.hasPartner;
+        }
+
+        if (partnerCache.issueKey !== issueKey) {
+            partnerCache.issueKey = issueKey;
+            partnerCache.assetInfo = null;
+            partnerCache.hasPartner = null;
+            partnerCache.promise = null;
+        }
+
+        if (partnerCache.promise) return partnerCache.promise;
+
+        partnerCache.promise = (async () => {
+            try {
+                const assetInfo = await fetchUserInfo(issueKey);
+                partnerCache.assetInfo = assetInfo;
+
+                const hasPartner = await checkPartnerAttribute(assetInfo.workspaceId, assetInfo.objectId);
+                partnerCache.hasPartner = hasPartner;
+                return hasPartner;
+            } catch (error) {
+                partnerCache.assetInfo = null;
+                partnerCache.hasPartner = null;
+                partnerCache.promise = null;
+                return false;
+            }
+        })();
+
+        return partnerCache.promise;
+    }
+
+    //Update the UI
+    async function createPartnerIconField() {
+        const ticketType = getTicketType();
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed tickets
+
+        const reporterContainer = document.querySelector('[data-testid="issue.views.field.user.reporter"]');
+        if (!reporterContainer || document.querySelector('.simple-p-icon')) return;
+
+        const issueKey = getIssueKey();
+        if (!issueKey) return;
+
+        const isPartner = await fetchPartnerInfo(issueKey)
+        if (!isPartner) return;
+
+    // Find the inner span with the visible name
+    const nameSpan = reporterContainer.querySelector('span._1reo15vq > span');
+    if (!nameSpan) {return;}
+
+    // Avoid adding duplicates
+    if (reporterContainer.querySelector('.simple-p-icon')) {
+        console.log('[SimpleP] P icon already exists, skipping.');
+        return;
+    }
+
+    // Create the P icon
+    const pIcon = document.createElement('span');
+    pIcon.textContent = '🅿️';
+    pIcon.classList.add('simple-p-icon');
+    pIcon.style.cssText = `
+        font-size: 16px;
+        margin-left: 5px;
+        font-weight: bold;
+        color: #0052CC;
+        vertical-align: middle;
+        display: inline-block;
+    `;
+
+    // Append after the name span
+    nameSpan.after(pIcon);
+    }
 
     /*********** NEW FEATURE: HIGH PRIORITY FLAME ICON ***********/
     function addFlameIconToHighPriority() {
@@ -600,38 +716,38 @@
         setTimeout(transformLinks, 500); //Convert links elements
     }
 
-    // Converts plain text URLs into clickable hyperlinks. 
+    // Converts plain text URLs into clickable hyperlinks.
     // For Liferay Jira links, shows the Issue ID.
     function transformLinks() {
         const divSelector = 'div[data-testid="insight-attribute-list-text-attribute-text"]';
         const targetDiv = document.querySelector(divSelector);
-    
+
         // Process only once
         if (!targetDiv || targetDiv.dataset.linksProcessed) return;
-    
+
         targetDiv.style.whiteSpace = 'pre-wrap';
         const originalText = targetDiv.textContent;
-    
+
         const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    
+
         const linkedHtml = originalText.replace(urlRegex, (capturedUrl) => {
             let cleanUrl = capturedUrl;
             let trailingPunctuation = '';
-    
+
             // Clean trailing characters
             while (cleanUrl.length > 0 && /[).,;:?!]$/.test(cleanUrl)) {
                 const lastChar = cleanUrl.slice(-1);
                 cleanUrl = cleanUrl.slice(0, -1);
                 trailingPunctuation = lastChar + trailingPunctuation;
             }
-    
+
             if (cleanUrl.length < 4) return capturedUrl;
-    
+
             let href = cleanUrl;
             if (!cleanUrl.match(/^https?:\/\//i)) {
                 href = 'http://' + cleanUrl;
             }
-    
+
             let linkText = cleanUrl;
             // if it is a link to a Jira issue, use its ID instead
             if (cleanUrl.startsWith('https://liferay.atlassian.net')) {
@@ -640,10 +756,10 @@
                     linkText = jiraIdMatch[1]; // Ej: "LPP-1234"
                 }
             }
-    
+
             return `<a href="${href}" target="_blank">${linkText}</a>${trailingPunctuation}`;
         });
-    
+
         targetDiv.innerHTML = linkedHtml;
         targetDiv.dataset.linksProcessed = "true";
     }
@@ -702,7 +818,7 @@
 
         const issueLinkPattern = /^https:\/\/[^/]+\/browse\/[A-Z0-9]+-\d+$/i;
         if (!issueLinkPattern.test(link.href)) return;
-        
+
         if (e.ctrlKey || e.metaKey || e.button !== 0) return;
 
         e.stopImmediatePropagation();
@@ -740,6 +856,7 @@
         addFlameIconToHighPriority();
         expandCCCInfo();
         addColorToProposedSolution();
+        await createPartnerIconField();
     }
 
     await updateUI();
