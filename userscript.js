@@ -3,8 +3,8 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.14
-// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed
+// @version      3.15
+// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
@@ -103,6 +103,59 @@
         return match ? match[1] : null;
     }
 
+    /*********** INTERNAL REQUEST TOP BAR WARNING ***********/
+
+    function isInternalRequest() {
+        const project = getTicketType();
+        if (project !== 'LRHC') return false;
+
+        const requestTypeElement = document.querySelector('[data-testid*="customfield_10010"]');
+        if (!requestTypeElement) return false;
+
+        const text = requestTypeElement.textContent || "";
+        return text.includes("Internal Request");
+    }
+
+    function checkInternalRequestWarning() {
+        const existingWarning = document.getElementById('internal-request-warning-bar');
+        const showWarning = isInternalRequest();
+
+        if (showWarning) {
+            if (existingWarning) return;
+
+            const warningBar = document.createElement('div');
+            warningBar.id = 'internal-request-warning-bar';
+            warningBar.style.cssText = `
+                background-color: #FFAB00;
+                color: #172B4D;
+                text-align: center;
+                padding: 10px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                z-index: 9999;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            `;
+
+            const linkUrl = "https://liferay.atlassian.net/wiki/spaces/SUPPORT/pages/4096557057/JSM+Agent+Overview#How-To-Publish-an-Internal-Request-to-customers";
+            warningBar.innerHTML = `
+                ⚠️ Manually changing the request type to General Request <b>will not publish the ticket</b>.
+                To avoid issues, please use the <b>Publish to Customer automation</b>.
+                <a href="${linkUrl}" target="_blank" style="color: #0052CC; text-decoration: underline; margin-left: 5px;">More info here.</a>
+            `;
+
+            document.body.prepend(warningBar);
+            document.body.style.paddingTop = '40px';
+        } else {
+            if (existingWarning) {
+                existingWarning.remove();
+                document.body.style.paddingTop = '0px';
+            }
+        }
+    }
+
 
     /*********** JIRA FILTER LINK FIELD ***********/
 
@@ -169,18 +222,18 @@
      /*********** ADD COLOR TO PROPOSED SOLUTION ***********/
     function addColorToProposedSolution() {
                const proposedSolutionDiv = document.querySelector('[data-testid="issue.views.field.rich-text.customfield_10278"]');
-        
+
         if (!proposedSolutionDiv) return;
 
         const textContent = proposedSolutionDiv.textContent.trim();
 
         if (textContent === "None") return;
-    
+
         const colorMode = document.documentElement.dataset.colorMode;
-        const bgColor = (colorMode === 'dark') 
-            ? '#1C3329' 
+        const bgColor = (colorMode === 'dark')
+            ? '#1C3329'
             : 'var(--ds-background-accent-green-subtlest, #E3FCEF)';
-    
+
         proposedSolutionDiv.style.setProperty('background-color', bgColor, 'important');
         proposedSolutionDiv.style.setProperty('padding', '10px', 'important');
         proposedSolutionDiv.style.setProperty('margin', '10px', 'important'); // Corregido 'marging'
@@ -410,9 +463,9 @@
     function highlightEditor() {
         // Check if the issue transition modal is being used
         const transitionModal = document.querySelector('section[data-testid="issue-transition.ui.issue-transition-modal"]');
-    
+
         let editorWrapper, editor, internalNoteButton;
-    
+
         if (transitionModal) {
             const commentContainer = transitionModal.querySelector('#comment-container');
             if (commentContainer) {
@@ -420,22 +473,22 @@
                 editor = commentContainer.querySelector('#ak-editor-textarea') || commentContainer.querySelector('textarea');
                 internalNoteButton = document.getElementById('issue-transition-comment-editor-container-tabs-0');
             }
-    
+
         } else {
             editorWrapper = document.querySelector('.css-sox1a6');
             editor = document.querySelector('#ak-editor-textarea');
             internalNoteButton = document.querySelector('#comment-editor-container-tabs-0');
         }
-    
+
         const isInternalSelected = internalNoteButton && internalNoteButton.getAttribute('aria-selected') === 'true';
-    
+
         if (isInternalSelected) {
-    
+
             if (editorWrapper) {
                 editorWrapper.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
                 editorWrapper.style.setProperty('border', '2px solid #FFD700', 'important'); // golden border
                 editorWrapper.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
-    
+
                 //Added back color font for Internal Note on Dark Mode
                 editorWrapper.style.setProperty('color', '#000000', 'important'); // back color font
             }
@@ -681,6 +734,7 @@
         createPatcherField();
         createJiraFilterLinkField();
         highlightEditor();
+        checkInternalRequestWarning();
         await createCustomerPortalField();
        // removeSignatureFromInternalNote();
         addFlameIconToHighPriority();

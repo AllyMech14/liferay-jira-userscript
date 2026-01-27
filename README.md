@@ -1,6 +1,6 @@
 # Jira for CSEs – Userscript
 
-**Version:** 3.10
+**Version:** 3.15
 **Author:** Allison McGill, Rita Schaff, Daniel Martínez Cisneros
 
 ---
@@ -13,8 +13,9 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 2. Inserting a link to Patcher portal, Customer portal and link to tickets in the ticket details.  
 3. Highlighting the editor when writing internal notes for quick visual distinction.
 4. Inserting a Link to Customer Portal in the ticket details.
-5. Optional Features controlled by Toggles (via the user script menu)
-6. Colorize solution proposed section
+5. Optional Features controlled by Toggles (via the user script menu).
+6. Colorize solution proposed section.
+7. **Displaying a warning top bar for Internal Requests.**
 
 ---
 
@@ -23,7 +24,7 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 ### 1. Status Colors
 - Different statuses now have different color backgrounds. 
 <img width="624" height="1050" alt="image" src="https://github.com/user-attachments/assets/beaa9362-9e09-4392-b8dd-44a5b911c0f7" />
-" />
+
 
 ### 2. Patcher Link Field
 - Automatically adds a Patcher portal link in the details field.  
@@ -51,7 +52,11 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 - Automatically add color to solution proposed section. 
 <img width="1399" height="603" alt="image" src="https://github.com/user-attachments/assets/8d947745-9a4b-4f7f-86ff-376cd066d9b2" />
 
+### 8. Internal Request Warning
+- Displays a yellow warning bar at the top of the screen if the ticket is an **Internal Request**.
+- Reminds the agent that manually changing the request type will not publish the ticket and provides a link to the correct automation procedure.
 
+---
 
 ## Optional Features can be toggled on or off using the userscript menu accessible via your userscript manager
 - **Disable Jira Shortcuts**: Prevents Jira’s keyboard shortcuts from triggering while typing.  
