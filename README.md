@@ -1,6 +1,6 @@
 # Jira for CSEs – Userscript
 
-**Version:** 3.15
+**Version:** 3.16
 **Author:** Allison McGill, Rita Schaff, Daniel Martínez Cisneros
 
 ---
@@ -15,7 +15,8 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 4. Inserting a Link to Customer Portal in the ticket details.
 5. Optional Features controlled by Toggles (via the user script menu).
 6. Colorize solution proposed section.
-7. **Displaying a warning top bar for Internal Requests.**
+7. Summarize all ticket attachments 
+8. **Displaying a warning top bar for Internal Requests.**
 
 ---
 

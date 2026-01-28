@@ -3,8 +3,8 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.15
-// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning
+// @version      3.16
+// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
@@ -508,6 +508,75 @@
             }
         }
     }
+
+
+    /*********** SUPPORT ATTACHMENTS DETECTOR ***********/
+    function detectSupportAttachments() {
+      // 1. Target the specific SSR placeholder
+      const ssrPlaceholder = document.querySelector('[data-ssr-placeholder-replace="issue-content-template-renderer-section"]');
+      if (!ssrPlaceholder) return;
+
+      // 2. Find all relevant support attachment links
+      const attachmentLinks = document.querySelectorAll('a[href*="support.liferay.com/ticket-attachments/"]');
+      if (attachmentLinks.length === 0) return;
+
+      // 3. Create or find the custom container using Jira-like classes
+      let customContainer = document.getElementById('userscript-attachments-container');
+      if (!customContainer) {
+          customContainer = document.createElement('div');
+          customContainer.id = 'userscript-attachments-container';
+          // Applied the classes you provided to match Jira's sidebar/content sections
+          customContainer.style.marginTop = "20px";
+
+          customContainer.innerHTML = `
+              <div class="_1e0c1txw _4cvr1h6o" style="display: block !important;">
+                  <h2 class="_11c81e3o _syazi7uo _1i4q1hna _1ul9idpf" style="margin-bottom: 12px;">
+                      Large File Attachments
+                  </h2>
+                  <ul id="userscript-attachments-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                  </ul>
+              </div>
+          `;
+
+          // Inject it right after the placeholder
+          ssrPlaceholder.parentNode.insertBefore(customContainer, ssrPlaceholder.nextSibling);
+      }
+
+      const listContainer = document.getElementById('userscript-attachments-list');
+
+      // 4. Process links and add them as list items (<li>)
+      attachmentLinks.forEach(link => {
+          const linkHref = link.href;
+          const linkText = link.textContent.trim();
+          
+          if (!link.dataset.attachmentLogged) {
+              link.dataset.attachmentLogged = "true";
+          }
+
+          // Append to the <ul> if the specific link is not already present
+          if (!listContainer.querySelector(`a[href="${linkHref}"]`)) {
+              const listItem = document.createElement('li');
+              listItem.style.display = "block";
+              
+              const linkElement = document.createElement('a');
+              linkElement.href = linkHref;
+              linkElement.target = "_blank";
+              linkElement.textContent = `${linkText}`;
+              linkElement.style.cssText = `
+                  color: #0052cc;
+                  text-decoration: underline;
+                  font-size: 14px;
+                  font-weight: 500;
+                  line-height: 1.5;
+              `;
+              
+              listItem.appendChild(linkElement);
+              listContainer.appendChild(listItem);
+          }
+      });
+    }
+
+
      /*********** NEW FEATURE: ADD PARTNER ICON ***********/
     
      // Cache to prevent repeated API calls per ticket
@@ -857,6 +926,7 @@
         expandCCCInfo();
         addColorToProposedSolution();
         await createPartnerIconField();
+        await detectSupportAttachments();
     }
 
     await updateUI();
