@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.16
+// @version      3.17
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -867,6 +867,10 @@
             `Open Tickets in New Tab: ${S.bgTabOpen ? "ON" : "OFF"}`,
             () => toggleSetting("bgTabOpen")
         );
+        GM_registerMenuCommand(
+            `Setup Custom Menu`,
+            () => openCustomMenuConfigPopup()
+        );
     }
 
     function toggleSetting(key) {
@@ -912,7 +916,66 @@
     function stopEventPropagation(e) {
         e.stopImmediatePropagation();
     }
+    
+    /*********** ADD CUSTOM BUTTON ***********/
+    function openCustomMenuConfigPopup() {
+        if (document.querySelector(".jsm-custommenu-settings-popup")) return;
+        const popup = document.createElement("div");
+        popup.className = "jsm-custommenu-settings-popup";
+        popup.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;background:#222;padding:1rem;border-radius:8px;z-index:10000;box-shadow:0 0 15px rgba(0,0,0,0.6);";
+        const help = document.createElement("div");
+        help.textContent = "Enter menu/button title and html content. Changes are saved automatically (page reload is required).";
+        help.style.cssText = "margin-bottom:10px;font-size:12px;color:#aaa;";
+        popup.appendChild(help);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Menu Name";
+        input.value = GM_getValue("customMenuName", "");
+        input.style.cssText = "width:100%;margin-bottom:8px;padding-top:4px;padding-bottom:4px;border-radius:4px;border:1px solid #444;background:#111;color:#0f0;";
+        input.addEventListener("input", () => GM_setValue("customMenuName", input.value));
+        popup.appendChild(input);
+        const textarea = document.createElement("textarea");
+        textarea.placeholder = "Paste any HTML";
+        textarea.value = GM_getValue("customMenuHtml", "");
+        textarea.style.cssText = "width:100%;height:240px;border-radius:4px;border:1px solid #444;background:#111;color:#0f0;resize:vertical;margin-bottom:8px;";
+        textarea.addEventListener("input", () => GM_setValue("customMenuHtml", textarea.value));
+        popup.appendChild(textarea);
+        const closeButton = document.createElement("button");
+        closeButton.textContent = "Close";
+        closeButton.style.marginTop = "10px";
+        closeButton.onclick = () => {popup.remove();};
+        popup.appendChild(textarea);
+        popup.appendChild(closeButton);
+        document.body.appendChild(popup);
+    }
 
+    function addCustomHeaderMenu() {
+        const name = GM_getValue("customMenuName", "");
+        const html = GM_getValue("customMenuHtml", "");
+        if (!name || !html) return;
+        const header = document.querySelector("header > div");
+        if (!header || header.querySelector(".jsm-custommenu-header-btn")) return;
+        header.click(); //Workaround - Jira reloads header
+        const btn = document.createElement("button");
+        btn.textContent = name;
+        btn.className = "jsm-custommenu-header-btn";
+        btn.style.cssText = "margin-left:8px;padding:4px 8px;border-radius:4px;cursor:pointer;";
+        const menu = document.createElement("div");
+        menu.innerHTML = html;
+        menu.style.cssText = "display:none;position:absolute;background:#fff;border:1px solid #ccc;padding: 8px;border-radius:6px;box-shadow:0 4px 8px rgba(0,0,0,0.1);z-index:10000;";
+        document.body.appendChild(menu);
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            const rect = btn.getBoundingClientRect();
+            menu.style.left = rect.left + window.scrollX + "px";
+            menu.style.top = rect.bottom + window.scrollY + "px";
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        });
+        document.addEventListener("click", () => menu.style.display = "none");
+        menu.addEventListener("click", e => e.stopPropagation());
+        header.appendChild(btn);
+    }
+    
     /*********** INITIAL RUN + OBSERVERS ***********/
     async function updateUI() {
         applyColors();
@@ -927,6 +990,7 @@
         addColorToProposedSolution();
         await createPartnerIconField();
         await detectSupportAttachments();
+        addCustomHeaderMenu();
     }
 
     await updateUI();
