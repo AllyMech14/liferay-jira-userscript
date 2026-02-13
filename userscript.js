@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.17
+// @version      3.18
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -868,7 +868,7 @@
             () => toggleSetting("bgTabOpen")
         );
         GM_registerMenuCommand(
-            `Setup Custom Menu`,
+            `Set up Custom Menu/Notes`,
             () => openCustomMenuConfigPopup()
         );
     }
@@ -917,7 +917,7 @@
         e.stopImmediatePropagation();
     }
     
-    /*********** ADD CUSTOM BUTTON ***********/
+    /*********** CUSTOM MENU ***********/
     function openCustomMenuConfigPopup() {
         if (document.querySelector(".jsm-custommenu-settings-popup")) return;
         const popup = document.createElement("div");
@@ -926,25 +926,38 @@
         const help = document.createElement("div");
         help.textContent = "Enter menu/button title and html content. Changes are saved automatically (page reload is required).";
         help.style.cssText = "margin-bottom:10px;font-size:12px;color:#aaa;";
-        popup.appendChild(help);
+        // Name
         const input = document.createElement("input");
         input.type = "text";
         input.placeholder = "Menu Name";
         input.value = GM_getValue("customMenuName", "");
         input.style.cssText = "width:100%;margin-bottom:8px;padding-top:4px;padding-bottom:4px;border-radius:4px;border:1px solid #444;background:#111;color:#0f0;";
         input.addEventListener("input", () => GM_setValue("customMenuName", input.value));
-        popup.appendChild(input);
+        // HTML
         const textarea = document.createElement("textarea");
         textarea.placeholder = "Paste any HTML";
         textarea.value = GM_getValue("customMenuHtml", "");
-        textarea.style.cssText = "width:100%;height:240px;border-radius:4px;border:1px solid #444;background:#111;color:#0f0;resize:vertical;margin-bottom:8px;";
+        textarea.style.cssText = "min-width:300px;width:100%;height:240px;border-radius:4px;border:1px solid #444;background:#111;color:#0f0;resize:vertical;margin-bottom:8px;";
         textarea.addEventListener("input", () => GM_setValue("customMenuHtml", textarea.value));
-        popup.appendChild(textarea);
+        // Enable Notes
+        const checkboxWrapper = document.createElement("label");
+        checkboxWrapper.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:8px;color:#fff;font-family:sans-serif;cursor:pointer;";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = GM_getValue("customMenuEnableNotes", false);
+        checkbox.addEventListener("change", () => {GM_setValue("customMenuEnableNotes", checkbox.checked);});
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(document.createTextNode("Enable NOTES"));
+        //Close Button
         const closeButton = document.createElement("button");
         closeButton.textContent = "Close";
         closeButton.style.marginTop = "10px";
         closeButton.onclick = () => {popup.remove();};
+        // Create menu
+        popup.appendChild(help);
+        popup.appendChild(input);
         popup.appendChild(textarea);
+        popup.appendChild(checkboxWrapper);
         popup.appendChild(closeButton);
         document.body.appendChild(popup);
     }
@@ -952,7 +965,8 @@
     function addCustomHeaderMenu() {
         const name = GM_getValue("customMenuName", "");
         const html = GM_getValue("customMenuHtml", "");
-        if (!name || !html) return;
+        const enableNotes = GM_getValue("customMenuEnableNotes", "");
+        if (!(name && (html || enableNotes))) return;
         const header = document.querySelector("header div");
         if (!header || header.querySelector(".jsm-custommenu-header-btn")) return;
         const btn = document.createElement("button");
@@ -972,6 +986,20 @@
         });
         document.addEventListener("click", () => menu.style.display = "none");
         menu.addEventListener("click", e => e.stopPropagation());
+
+        if (enableNotes) {
+            const notesLabel = document.createElement("label");
+            notesLabel.textContent = "Notes";
+            notesLabel.htmlFor = "jsm-custommenu-notes";
+            const notesTextarea = document.createElement("textarea");
+            notesTextarea.id = "jsm-custommenu-notes";
+            notesTextarea.value = GM_getValue("customMenuNotes", "");
+            notesTextarea.style.cssText = "min-height:150px;min-width:95%;resize:both;";
+            notesTextarea.addEventListener("input", () => {GM_setValue("customMenuNotes", notesTextarea.value);});
+            if (html) menu.appendChild(document.createElement("hr"));
+            menu.appendChild(notesLabel);
+            menu.appendChild(notesTextarea);
+        }
         header.appendChild(btn);
     }
     

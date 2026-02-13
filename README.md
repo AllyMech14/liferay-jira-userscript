@@ -17,7 +17,7 @@ This userscript adds quality of life updates to Jira interface for Customer Supp
 6. Colorize solution proposed section.
 7. Summarize all ticket attachments 
 8. **Displaying a warning top bar for Internal Requests.**
-9. Optional Custom Menu (via the user script menu).
+9. Optional Menu enabling custom html / notes (via the user script menu).
 
 ---
 
