@@ -953,9 +953,8 @@
         const name = GM_getValue("customMenuName", "");
         const html = GM_getValue("customMenuHtml", "");
         if (!name || !html) return;
-        const header = document.querySelector("header > div");
+        const header = document.querySelector("header div");
         if (!header || header.querySelector(".jsm-custommenu-header-btn")) return;
-        header.click(); //Workaround - Jira reloads header
         const btn = document.createElement("button");
         btn.textContent = name;
         btn.className = "jsm-custommenu-header-btn";
