@@ -164,7 +164,7 @@
         if (!accountCode) return null;
 
         // The base JQL query string containing the <CODE> placeholder
-        const jiraFilterByAccountCode = 'https://liferay.atlassian.net/issues/?jql=%22account%20code%5Bshort%20text%5D%22%20~%20%22<CODE>%22%20and%20project%20%3D%20LRHC%20ORDER%20BY%20created%20DESC';
+        const jiraFilterByAccountCode = 'https://liferay.atlassian.net/issues/?jql=%22account%20code%5Bshort%20text%5D%22%20~%20%22<CODE>%22%20and%20project%20in%20(LRHC%2C%20LRFLS)%20ORDER%20BY%20created%20DESC';
 
         // Replace the placeholder <CODE> with the actual account code
         return jiraFilterByAccountCode.replace('<CODE>', accountCode);
