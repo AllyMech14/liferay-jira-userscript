@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.19
+// @version      3.20
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -190,8 +190,8 @@
 
         // UNIQUE CLASS AND HEADING
         clone.classList.add('jira-filter-link-field');
-        const heading = clone.querySelector('h3');
-        if (heading) heading.textContent = 'Account Filter'; // Descriptive Title
+        const span = clone.querySelector('span');
+        if (span) span.textContent = 'Account Filter'; // Descriptive Title
 
         const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
         if (contentContainer) contentContainer.innerHTML = '';
@@ -273,8 +273,8 @@
         }
         clone.classList.add('patcher-link-field');
 
-        const heading = clone.querySelector('h3');
-        if (heading) heading.textContent = 'Patcher Link';
+        const span = clone.querySelector('span');
+        if (span) span.textContent = 'Patcher Link';
 
         const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
         if (contentContainer) contentContainer.innerHTML = '';
@@ -415,8 +415,8 @@
         clone.classList.add('customer-portal-link-field');
 
         // Update field heading
-        const heading = clone.querySelector('h3');
-        if (heading) heading.textContent = 'Customer Portal';
+        const span = clone.querySelector('span');
+        if (span) span.textContent = 'Customer Portal';
 
         // Get content container
         const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
