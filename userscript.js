@@ -1004,8 +1004,21 @@
         header.appendChild(btn);
     }
     
-    // Function to create and insert new fields
-    async function createPanelField({ newField, callbackFn }) {
+    /**
+    * Creates and inserts a new custom panel link field.
+    *
+    * @param {Object} config - Configuration object used to create the custom panel field.
+    * @param {Object} config.newField - Defines the visual properties of the new field.
+    * @param {string} config.newField.heading - The display heading of the field. Ex: `'Example Link'`
+    * @param {string} config.newField.class - The CSS class applied to the field. Ex: `'example-link-field'`
+    * @param {Function} config.callbackFn - Async callback executed to generate the link.
+    *   Must resolve to an object with the following shape:
+    *   `{ url: string, name: string }`
+    *   Ex: `{ url: "https://www.liferay.com/", name: "Link" }`
+    *
+    * @returns {void}
+    */
+    async function createPanelFieldLink({ newField, callbackFn }) {
         const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
         if (!originalField || document.querySelector(`.${newField.class}`)) return;
 
@@ -1072,7 +1085,7 @@
         }
         const newField = { heading: 'Raysource Portal', class: 'raysource-portal-link-field' }
 
-        createPanelField({ newField, callbackFn })
+        createPanelFieldLink({ newField, callbackFn })
     }
 
     /*********** INITIAL RUN + OBSERVERS ***********/
