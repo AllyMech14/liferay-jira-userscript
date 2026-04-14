@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.21
+// @version      3.22
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -1004,12 +1004,84 @@
         header.appendChild(btn);
     }
     
+    // Function to create and insert new fields
+    async function createPanelField({ newField, callbackFn }) {
+        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        if (!originalField || document.querySelector(`.${newField.class}`)) return;
+
+        // --- UI Setup ---
+        const clone = originalField.cloneNode(true);
+
+        // Remove duplicated "Assign to Me"
+        clone.querySelector('[data-testid="issue-view-layout-assignee-field.ui.assign-to-me"]')?.remove();
+        clone.classList.add(newField.class);
+
+        // Update field heading
+        const span = clone.querySelector('span');
+        if (span) span.textContent = newField.heading;
+
+        // Get content container
+        const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
+        if (contentContainer) contentContainer.innerHTML = '';
+
+        // Placeholder while fetching
+        const statusText = document.createElement('span');
+        statusText.textContent = 'Loading Link...';
+        statusText.style.color = '#FFA500'; // Orange for loading
+        contentContainer?.appendChild(statusText);
+
+        // Insert the cloned field *before* fetching to provide immediate feedback
+        await originalField.parentNode.insertBefore(clone, originalField.nextSibling);
+
+        // --- Data Fetch and Link Creation ---
+        try {
+            const { url, name } = await callbackFn()
+
+            if (url && name) {
+                contentContainer.innerHTML = ''; // Clear loading text
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.textContent = name;
+                link.style.cssText = 'display: block; margin-top: 5px; text-decoration: underline;';
+                contentContainer.appendChild(link);
+            } else {
+                statusText.textContent = 'Link Not Found (Missing Key)';
+                statusText.style.color = '#DC143C'; // Red for error
+            }
+        } catch (error) {
+            contentContainer.innerHTML = '';
+            const errorText = document.createElement('span');
+            errorText.textContent = `Error: ${error.message}`;
+            errorText.style.color = '#DC143C';
+            contentContainer.appendChild(errorText);
+        }
+    }
+
+    function createProvisioningPortalFields() {
+        const ticketType = getTicketType();
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
+
+        const issueKey = getIssueKey();
+        if (!issueKey) return;
+
+        const callbackFn = async () => {
+            const externalKey = await fetchCustomerPortalData(issueKey);
+            const url = externalKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${externalKey}` : null
+            return { url, name: externalKey };
+        }
+        const newField = { heading: 'Raysource Portal', class: 'raysource-portal-link-field' }
+
+        createPanelField({ newField, callbackFn })
+    }
+
     /*********** INITIAL RUN + OBSERVERS ***********/
     async function updateUI() {
         applyColors();
         createPatcherField();
         createJiraFilterLinkField();
         highlightEditor();
+        createProvisioningPortalFields()
         checkInternalRequestWarning();
         await createCustomerPortalField();
        // removeSignatureFromInternalNote();
