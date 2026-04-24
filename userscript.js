@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.21
+// @version      3.22
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -738,6 +738,7 @@
     }
 
     /*********** https://liferay.atlassian.net/browse/LRSUPPORT-47251 ***********/
+    /*********** https://liferay.atlassian.net/browse/LRSUPPORT-47251 ***********/
    function expandCCCInfo() {
         // 1. Define the headers we want to target
         const targetHeaders = [
@@ -746,40 +747,48 @@
             "CCC SaaS Maintenance Info"
         ];
 
-        // 2. Find all headers (h3) and all Object Cards on the page
-        const allHeaders = Array.from(document.querySelectorAll('h3'));
+        // 2. Find all card headers (class 'css-x0ppza' seems to be the most accurate way currently, April '26)
+        // and all Object Cards on the page
+        const allCardHeaders = Array.from(document.querySelectorAll('.css-x0ppza'));
         const allCards = document.querySelectorAll('[data-testid="issue-field-cmdb-object-lazy.ui.card.cmdb-object-card"]');
 
         // 3. Iterate through every card found
         allCards.forEach(card => {
+
             // Find the header that this card belongs to.
             // We do this by filtering headers that appear BEFORE this specific card,
             // and taking the last one (the nearest one).
-            const precedingHeaders = allHeaders.filter(h =>
+            const precedingHeaders = allCardHeaders.filter(h =>
                 (h.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)
             );
 
             const nearestHeader = precedingHeaders.length > 0 ? precedingHeaders[precedingHeaders.length - 1] : null;
 
-            // 4. Check if the nearest header is one of our targets
-            if (nearestHeader && targetHeaders.includes(nearestHeader.textContent.trim())) {
+            if (nearestHeader) {
 
-                // 5. Find the Expand Button inside this specific card
-                const buttons = card.querySelectorAll('button');
-                let expandBtn = null;
+                const headerText = nearestHeader.textContent.trim();
 
-                buttons.forEach(btn => {
-                    const testId = btn.getAttribute('data-testid') || "";
-                    // Select the button that is NOT "View Details" or "Edit"
-                    if (!testId.includes('button-view-details') && !testId.includes('button-edit')) {
-                        expandBtn = btn;
+                // 4. Check if the nearest header is one of our targets
+                const matchesTarget = targetHeaders.some(target => headerText.startsWith(target));
+
+                if (matchesTarget) {
+                    // 5. Find the Expand Button inside this specific card
+                    const buttons = card.querySelectorAll('button');
+                    let expandBtn = null;
+
+                    buttons.forEach(btn => {
+                        const testId = btn.getAttribute('data-testid') || "";
+                        // Select the button that is NOT "View Details" or "Edit"
+                        if (!testId.includes('button-view-details') && !testId.includes('button-edit')) {
+                            expandBtn = btn;
+                        }
+                    });
+
+                    // 6. Click logic with Mutation Guard
+                    if (expandBtn && !expandBtn.hasAttribute('data-userscript-auto-expanded')) {
+                        expandBtn.click();
+                        expandBtn.setAttribute('data-userscript-auto-expanded', 'true');
                     }
-                });
-
-                // 6. Click logic with Mutation Guard
-                if (expandBtn && !expandBtn.hasAttribute('data-userscript-auto-expanded')) {
-                    expandBtn.click();
-                    expandBtn.setAttribute('data-userscript-auto-expanded', 'true');
                 }
             }
         });
