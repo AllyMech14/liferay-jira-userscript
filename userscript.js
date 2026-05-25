@@ -171,9 +171,6 @@
     }
 
     function createJiraFilterLinkField() {
-        const ticketType = getTicketType();
-        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
-
         const accountCode = getAccountCode();
 
         const callbackFn = async () => {
@@ -223,9 +220,6 @@
     }
 
     function createPatcherField() {
-        const ticketType = getTicketType();
-        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
-
         const accountCode = getAccountCode();
 
         const callbackFn = async () => {
@@ -339,9 +333,6 @@
 
     // 6. Main function to create and insert the field (handles UI updates only)
     function createCustomerPortalField() {
-        const ticketType = getTicketType();
-        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
-
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
@@ -979,9 +970,6 @@
     }
 
     function createProvisioningPortalFields() {
-        const ticketType = getTicketType();
-        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
-
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
@@ -995,15 +983,29 @@
         createPanelFieldLink({ newField, callbackFn })
     }
 
+    /**
+     * Initializes and renders custom fields within the Jira issue side panel if the ticket matches 
+     * allowed types ('LRHC' or 'LRFLS')
+     * 
+     * @returns {void}
+     */
+    function createCustomSidePanelFields() {
+        const ticketType = getTicketType();
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
+
+        createCustomerPortalField();
+        createProvisioningPortalFields()
+        createPatcherField();
+        createJiraFilterLinkField();
+    }
+
+
     /*********** INITIAL RUN + OBSERVERS ***********/
     async function updateUI() {
         applyColors();
-        createPatcherField();
-        createJiraFilterLinkField();
+        createCustomSidePanelFields();
         highlightEditor();
-        createProvisioningPortalFields()
         checkInternalRequestWarning();
-        await createCustomerPortalField();
        // removeSignatureFromInternalNote();
         addFlameIconToHighPriority();
         expandCCCInfo();
