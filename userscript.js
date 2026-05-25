@@ -171,52 +171,18 @@
     }
 
     function createJiraFilterLinkField() {
-        // Select the original field wrapper to clone its structure
-        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
-        if (!originalField) return;
-
-        // We insert the new field after the original Patcher Link field
-        const referenceField = document.querySelector('.patcher-link-field');
-        if (!referenceField) return; // Ensure the Patcher field exists first
-
-        // Prevent duplicates
-        if (document.querySelector('.jira-filter-link-field')) return;
+        const ticketType = getTicketType();
+        if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
         const accountCode = getAccountCode();
-        const clone = originalField.cloneNode(true);
 
-        // Cleanup: Remove the duplicated "Assign to Me" button
-        clone.querySelector('[data-testid="issue-view-layout-assignee-field.ui.assign-to-me"]')?.remove();
-
-        // UNIQUE CLASS AND HEADING
-        clone.classList.add('jira-filter-link-field');
-        const span = clone.querySelector('span');
-        if (span) span.textContent = 'Account Filter'; // Descriptive Title
-
-        const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
-        if (contentContainer) contentContainer.innerHTML = '';
-
-        // LINK CREATION
-        const link = document.createElement('a');
-        if (accountCode) {
-            // Use the new function to generate the Jira filter URL
-            link.href = getJiraFilterHref(accountCode);
-            link.target = '_blank';
-            link.textContent = accountCode;
-        } else {
-            // Handle case where Account Code is missing
-            link.textContent = 'Account Code Missing';
-            link.style.color = '#999';
+        const callbackFn = async () => {
+            const url = getJiraFilterHref(accountCode);
+            return { url, name: accountCode };
         }
+        const newField = { heading: 'Account Filter', class: 'jira-filter-link-field' }
 
-        // Styles
-        link.style.display = 'block';
-        link.style.marginTop = '5px';
-        link.style.textDecoration = 'underline';
-        contentContainer?.appendChild(link);
-
-        // Insert the new field after the Patcher Link field
-        referenceField.parentNode.insertBefore(clone, referenceField.nextSibling);
+        createPanelFieldLink({ newField, callbackFn })
     }
 
      /*********** ADD COLOR TO PROPOSED SOLUTION ***********/
@@ -260,41 +226,15 @@
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
-        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
-        if (!originalField) return;
-        if (document.querySelector('.patcher-link-field')) return;
-
         const accountCode = getAccountCode();
-        const clone = originalField.cloneNode(true);
-        // Remove the Assign to Me, which is duplicated
-        const assignToMe = clone.querySelector('[data-testid="issue-view-layout-assignee-field.ui.assign-to-me"]');
-        if (assignToMe) {
-            assignToMe.remove();
+
+        const callbackFn = async () => {
+            const url = getPatcherPortalAccountsHREF('', { accountEntryCode: accountCode });
+            return { url, name: accountCode };
         }
-        clone.classList.add('patcher-link-field');
+        const newField = { heading: 'Patcher Portal', class: 'patcher-link-field' }
 
-        const span = clone.querySelector('span');
-        if (span) span.textContent = 'Patcher Link';
-
-        const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
-        if (contentContainer) contentContainer.innerHTML = '';
-
-        const link = document.createElement('a');
-        if (accountCode) {
-            link.href = getPatcherPortalAccountsHREF('', { accountEntryCode: accountCode });
-            link.target = '_blank';
-            link.textContent = accountCode;
-        } else {
-            link.textContent = 'Account Code Missing';
-            link.style.color = '#999';
-        }
-
-        link.style.display = 'block';
-        link.style.marginTop = '5px';
-        link.style.textDecoration = 'underline';
-        contentContainer && contentContainer.appendChild(link);
-
-        originalField.parentNode.insertBefore(clone, originalField.nextSibling);
+        createPanelFieldLink({ newField, callbackFn })
     }
 
     /*********** CUSTOMER PORTAL LINK FIELD ***********/
@@ -398,65 +338,23 @@
 
 
     // 6. Main function to create and insert the field (handles UI updates only)
-    async function createCustomerPortalField() {
+    function createCustomerPortalField() {
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
-
-        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
-        if (!originalField || document.querySelector('.customer-portal-link-field')) return;
 
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
-        // --- UI Setup ---
-        const clone = originalField.cloneNode(true);
-        // Remove duplicated "Assign to Me"
-        clone.querySelector('[data-testid="issue-view-layout-assignee-field.ui.assign-to-me"]')?.remove();
-        clone.classList.add('customer-portal-link-field');
-
-        // Update field heading
-        const span = clone.querySelector('span');
-        if (span) span.textContent = 'Customer Portal';
-
-        // Get content container
-        const contentContainer = clone.querySelector('[data-testid="issue-field-inline-edit-read-view-container.ui.container"]');
-        if (contentContainer) contentContainer.innerHTML = '';
-
-        // Placeholder while fetching
-        const statusText = document.createElement('span');
-        statusText.textContent = 'Loading Portal Link...';
-        statusText.style.color = '#FFA500'; // Orange for loading
-        contentContainer?.appendChild(statusText);
-
-        // Insert the cloned field *before* fetching to provide immediate feedback
-        originalField.parentNode.insertBefore(clone, originalField.nextSibling);
-
-        // --- Data Fetch and Link Creation ---
-        try {
+        const callbackFn = async () => {
             const externalKey = await fetchCustomerPortalData(issueKey);
-            const url = getCustomerPortalHref(externalKey);
-
-            if (url && externalKey) {
-                contentContainer.innerHTML = ''; // Clear loading text
-                const link = document.createElement('a');
-                link.href = url;
-                link.target = '_blank';
-                link.textContent = externalKey;
-                link.style.cssText = 'display: block; margin-top: 5px; text-decoration: underline;';
-                contentContainer.appendChild(link);
-            } else {
-                statusText.textContent = 'Link Not Found (Missing Key)';
-                statusText.style.color = '#DC143C'; // Red for error
-            }
-        } catch (error) {
-            contentContainer.innerHTML = ''; // Clear loading text
-            const errorText = document.createElement('span');
-            errorText.textContent = `Error: ${error.message}`;
-            errorText.style.color = '#DC143C'; // Red for error
-            contentContainer.appendChild(errorText);
-            // Note: The original error is already logged by fetchCustomerPortalData
+            const url = externalKey ? `https://support.liferay.com/project/#/${externalKey}` : null;
+            return { url, name: externalKey };
         }
+        const newField = { heading: 'Customer Portal', class: 'customer-portal-link-field' }
+
+        createPanelFieldLink({ newField, callbackFn })
     }
+
 
     /*********** INTERNAL NOTE HIGHLIGHT ***********/
 
@@ -1092,7 +990,7 @@
             const url = externalKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${externalKey}` : null
             return { url, name: externalKey };
         }
-        const newField = { heading: 'Raysource Portal', class: 'raysource-portal-link-field' }
+        const newField = { heading: 'Raysource', class: 'raysource-portal-link-field' }
 
         createPanelFieldLink({ newField, callbackFn })
     }
