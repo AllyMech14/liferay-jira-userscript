@@ -172,7 +172,7 @@
 
     function createJiraFilterLinkField() {
         // Select the original field wrapper to clone its structure
-        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
         if (!originalField) return;
 
         // We insert the new field after the original Patcher Link field
@@ -260,7 +260,7 @@
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
-        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
         if (!originalField) return;
         if (document.querySelector('.patcher-link-field')) return;
 
@@ -402,7 +402,7 @@
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
-        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
         if (!originalField || document.querySelector('.customer-portal-link-field')) return;
 
         const issueKey = getIssueKey();
@@ -1028,7 +1028,7 @@
     * @returns {void}
     */
     async function createPanelFieldLink({ newField, callbackFn }) {
-        const originalField = document.querySelector('[data-component-selector="jira-issue-field-heading-field-wrapper"]');
+        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
         if (!originalField || document.querySelector(`.${newField.class}`)) return;
 
         // --- UI Setup ---
