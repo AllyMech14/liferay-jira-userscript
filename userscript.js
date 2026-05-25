@@ -170,7 +170,7 @@
         return jiraFilterByAccountCode.replace('<CODE>', accountCode);
     }
 
-    function createJiraFilterLinkField() {
+    function createJiraFilterLinkField({ afterFieldClass = null }) {
         const accountCode = getAccountCode();
 
         const callbackFn = async () => {
@@ -179,7 +179,7 @@
         }
         const newField = { heading: 'Account Filter', class: 'jira-filter-link-field' }
 
-        createPanelFieldLink({ newField, callbackFn })
+        createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
 
      /*********** ADD COLOR TO PROPOSED SOLUTION ***********/
@@ -219,7 +219,7 @@
         return accountDiv ? accountDiv.textContent.trim() : null;
     }
 
-    function createPatcherField() {
+    function createPatcherField({ afterFieldClass = null }) {
         const accountCode = getAccountCode();
 
         const callbackFn = async () => {
@@ -228,7 +228,7 @@
         }
         const newField = { heading: 'Patcher Portal', class: 'patcher-link-field' }
 
-        createPanelFieldLink({ newField, callbackFn })
+        createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
 
     /*********** CUSTOMER PORTAL LINK FIELD ***********/
@@ -332,7 +332,7 @@
 
 
     // 6. Main function to create and insert the field (handles UI updates only)
-    function createCustomerPortalField() {
+    function createCustomerPortalField({ afterFieldClass = null }) {
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
@@ -343,7 +343,7 @@
         }
         const newField = { heading: 'Customer Portal', class: 'customer-portal-link-field' }
 
-        createPanelFieldLink({ newField, callbackFn })
+        createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
 
 
@@ -910,14 +910,20 @@
     * @param {string} config.newField.heading - The display heading of the field. Ex: `'Example Link'`
     * @param {string} config.newField.class - The CSS class applied to the field. Ex: `'example-link-field'`
     * @param {Function} config.callbackFn - Async callback executed to generate the link.
+    * @param {string} [options.afterFieldClass=null] - Optional. The CSS class of the field below which the new element should be placed. If omitted, it defaults to the "Assignee" field.
     *   Must resolve to an object with the following shape:
     *   `{ url: string, name: string }`
     *   Ex: `{ url: "https://www.liferay.com/", name: "Link" }`
     *
     * @returns {void}
     */
-    async function createPanelFieldLink({ newField, callbackFn }) {
-        const originalField = document.querySelector('[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]');
+    async function createPanelFieldLink({ newField, callbackFn, afterFieldClass = null }) {
+        // Determine the target selector: use the provided class or default to Jira's "Assignee" field selector
+        const targetSelector = afterFieldClass 
+            ? `.${afterFieldClass}` 
+            : '[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]';
+
+        const originalField = document.querySelector(targetSelector);
         if (!originalField || document.querySelector(`.${newField.class}`)) return;
 
         // --- UI Setup ---
@@ -969,7 +975,7 @@
         }
     }
 
-    function createProvisioningPortalFields() {
+    function createProvisioningPortalFields({ afterFieldClass = null }) {
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
@@ -978,9 +984,9 @@
             const url = externalKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${externalKey}` : null
             return { url, name: externalKey };
         }
-        const newField = { heading: 'Raysource', class: 'raysource-portal-link-field' }
+        const newField = { heading: 'Raysource', class: 'raysource-link-field' }
 
-        createPanelFieldLink({ newField, callbackFn })
+        createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
 
     /**
@@ -993,10 +999,10 @@
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
-        createCustomerPortalField();
-        createProvisioningPortalFields()
-        createPatcherField();
-        createJiraFilterLinkField();
+        createCustomerPortalField({});
+        createProvisioningPortalFields({ afterFieldClass: 'customer-portal-link-field' });
+        createPatcherField({ afterFieldClass: 'raysource-link-field' });
+        createJiraFilterLinkField({ afterFieldClass: 'patcher-link-field' });
     }
 
 
