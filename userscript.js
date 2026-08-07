@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.23
+// @version      3.25
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -25,6 +25,7 @@
         'withproductteam': { bg: '#7c29a4', color: '#fff' },
         'withsre': { bg: '#7c29a4', color: '#fff' },
         'inprogress': { bg: '#cc2d24', color: '#fff' },
+        'open': { bg: '#cc2d24', color: '#fff' },
 
         // unchanged statuses below
         'solutionproposed': { bg: '#7d868e', color: '#fff' },
@@ -43,6 +44,7 @@
     }
 
     // Apply colors dynamically
+    // Apply colors dynamically
     function applyColors() {
         // Select both types of elements: dynamic class + data-testid containing "status"
         const elements = document.querySelectorAll(
@@ -52,51 +54,70 @@
             'span[title],' +
             'div[aria-label*="Status"],' +
             '[data-testid*="issue-status"] span,' +
+            '[data-testid$="status-button.status-button"],' + // NEW: the new status button element itself
             '.css-1mh9skp,' +
             '.css-14er0c4,' +
             '.css-1ei6h1c'
         );
 
         // Apply base lozenge sizing & centering to ALL statuses
-        elements.forEach(el => {
-            const rawText = (el.innerText || el.textContent || '').trim();
+            elements.forEach(el => {
+            let rawText = (el.innerText || el.textContent || '').trim();
+
+            const testId = el.getAttribute('data-testid') || '';
+            const isStatusButton = testId.endsWith('status-button.status-button');
+
+            if (isStatusButton) {
+                const textSpan = el.querySelector('[data-testid$="status-button--text"]');
+                if (textSpan) {
+                    rawText = textSpan.textContent.trim();
+                } else {
+                    const ariaLabel = el.getAttribute('aria-label') || '';
+                    rawText = ariaLabel.replace(/-\s*Change status$/i, '').trim();
+                }
+            }
+
             const key = normalizeStatus(rawText);
             const style = statusColors[key];
 
-            // Base lozenge styling for all statuses
-            el.style.padding = '3px 4px';       // space inside the badge
-            el.style.fontSize = '1em';          // default font size
-            el.style.borderRadius = '4px';      // rounded corners
-            el.style.minHeight = '13px';        // minimum height
-            el.style.minWidth = '24px';         // minimum width
-            el.style.display = 'inline-flex';   // flex container for centering
-            el.style.alignItems = 'center';     // vertical centering
-            el.style.justifyContent = 'center'; // horizontal centering
-            el.style.lineHeight = '1';          // line height inside badge
-            el.style.boxSizing = 'border-box';  // include padding in size
-            el.style.backgroundImage = 'none';  // remove any background image
-            el.style.boxShadow = 'none';
-
-
-            // Apply custom colors if status matched
-            if (style) {
-
-                el.style.setProperty("background", style.bg, "important"); // background color
-                el.style.setProperty("color", style.color, "important");   // text color
-                el.style.setProperty("font-weight", "bold", "important");  // bold text
-                el.style.setProperty("border", "none", "important");       // remove border
-
-
+            // Only force lozenge sizing on the OLD-style elements.
+            if (!isStatusButton) {
+                el.style.padding = '3px 0px 3px 4px';
+                el.style.fontSize = '0.8rem';
+                el.style.borderRadius = '4px';
+                el.style.minHeight = '13px';
+                el.style.minWidth = '24px';
+                el.style.display = 'inline-flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'left';
+                el.style.lineHeight = '1';
+                el.style.boxSizing = 'border-box';
+                el.style.backgroundImage = 'none';
+                el.style.boxShadow = 'none';
+            } else {
+                // Tweaks for the button
+                el.style.borderRadius = '4px';
+                el.style.backgroundImage = 'none';
+                el.style.boxShadow = 'none';
+                el.style.setProperty('font-size', '10.5px', 'important');
+                el.style.setProperty('font-weight', 'bold', 'important');
             }
-            // Ensure nested spans don’t override main badge styles
+
+            if (style) {
+                el.style.setProperty("background", style.bg, "important");
+                el.style.setProperty("color", style.color, "important");
+                el.style.setProperty("font-weight", "bold", "important");
+                el.style.setProperty("border", "none", "important");
+            }
+
             el.querySelectorAll('span').forEach(span => {
-                span.style.setProperty("background", "transparent", "important"); // transparent bg
-                span.style.setProperty("color", "inherit", "important");          // inherit badge text color
-                span.style.setProperty("font-size", "1em", "important");          // force font size
+                span.style.setProperty("background", "transparent", "important");
+                span.style.setProperty("color", "inherit", "important");
+                span.style.setProperty("font-size", "1em", "important");
+                span.style.setProperty("font-weight", "inherit", "important");
             });
         });
     }
-
     function getTicketType() {
         const title = document.title;
         const match = title.match(/\[([A-Z]+)-\d+\]/);
@@ -437,7 +458,7 @@
       attachmentLinks.forEach(link => {
           const linkHref = link.href;
           const linkText = link.textContent.trim();
-          
+
           if (!link.dataset.attachmentLogged) {
               link.dataset.attachmentLogged = "true";
           }
@@ -446,7 +467,7 @@
           if (!listContainer.querySelector(`a[href="${linkHref}"]`)) {
               const listItem = document.createElement('li');
               listItem.style.display = "block";
-              
+
               const linkElement = document.createElement('a');
               linkElement.href = linkHref;
               linkElement.target = "_blank";
@@ -458,7 +479,7 @@
                   font-weight: 500;
                   line-height: 1.5;
               `;
-              
+
               listItem.appendChild(linkElement);
               listContainer.appendChild(listItem);
           }
@@ -467,7 +488,7 @@
 
 
      /*********** NEW FEATURE: ADD PARTNER ICON ***********/
-    
+
      // Cache to prevent repeated API calls per ticket
     const partnerCache = {
         issueKey: null,
@@ -815,7 +836,7 @@
     function stopEventPropagation(e) {
         e.stopImmediatePropagation();
     }
-    
+
     /*********** CUSTOM MENU ***********/
     function openCustomMenuConfigPopup() {
         if (document.querySelector(".jsm-custommenu-settings-popup")) return;
@@ -901,7 +922,7 @@
         }
         header.appendChild(btn);
     }
-    
+
     /**
     * Creates and inserts a new custom panel link field.
     *
@@ -919,8 +940,8 @@
     */
     async function createPanelFieldLink({ newField, callbackFn, afterFieldClass = null }) {
         // Determine the target selector: use the provided class or default to Jira's "Assignee" field selector
-        const targetSelector = afterFieldClass 
-            ? `.${afterFieldClass}` 
+        const targetSelector = afterFieldClass
+            ? `.${afterFieldClass}`
             : '[data-testid="issue.issue-view-layout.issue-view-assignee-field.assignee"]';
 
         const originalField = document.querySelector(targetSelector);
@@ -990,9 +1011,9 @@
     }
 
     /**
-     * Initializes and renders custom fields within the Jira issue side panel if the ticket matches 
+     * Initializes and renders custom fields within the Jira issue side panel if the ticket matches
      * allowed types ('LRHC' or 'LRFLS')
-     * 
+     *
      * @returns {void}
      */
     function createCustomSidePanelFields() {
@@ -1020,11 +1041,36 @@
         await detectSupportAttachments();
         addCustomHeaderMenu();
     }
+        function watchStatusButton() {
+        // Re-color instantly on click, before the dropdown/re-render even settles
+        document.addEventListener('pointerdown', (e) => {
+            const btn = e.target.closest('[data-testid$="status-button.status-button"]');
+            if (btn) requestAnimationFrame(applyColors);
+        }, true);
+
+        // Also catch the moment Jira flips aria-expanded (covers keyboard-triggered opens too)
+        const statusObserver = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type === 'attributes' && m.attributeName === 'aria-expanded') {
+                    applyColors();
+                    return;
+                }
+            }
+        });
+
+        // Observe the whole body for aria-expanded changes on any status button
+        statusObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['aria-expanded'],
+            subtree: true
+        });
+    }
 
     await updateUI();
     registerMenu();
     disableShortcuts();
     backgroundTabLinks();
+    watchStatusButton();
 
     const createThrottler = (callback, delay) => {
         let pending = false;
@@ -1046,7 +1092,7 @@
         };
     };
 
-    const throttledUpdateUI = createThrottler(() => updateUI(), 1000); // Max 1 execution / second
+    const throttledUpdateUI = createThrottler(() => updateUI(), 150); 
     const observer = new MutationObserver(throttledUpdateUI);
     observer.observe(document.body, { childList: true, subtree: true });
 
