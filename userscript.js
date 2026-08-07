@@ -115,6 +115,7 @@
                 span.style.setProperty("color", "inherit", "important");
                 span.style.setProperty("font-size", "1em", "important");
                 span.style.setProperty("font-weight", "inherit", "important");
+                el.title=rawText;
             });
         });
     }
