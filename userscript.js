@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.24
+// @version      3.25
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -25,6 +25,7 @@
         'withproductteam': { bg: '#7c29a4', color: '#fff' },
         'withsre': { bg: '#7c29a4', color: '#fff' },
         'inprogress': { bg: '#cc2d24', color: '#fff' },
+        'open': { bg: '#cc2d24', color: '#fff' },
 
         // unchanged statuses below
         'solutionproposed': { bg: '#7d868e', color: '#fff' },
@@ -81,14 +82,14 @@
 
             // Only force lozenge sizing on the OLD-style elements.
             if (!isStatusButton) {
-                el.style.padding = '3px 4px';
-                el.style.fontSize = '1em';
+                el.style.padding = '3px 0px 3px 4px';
+                el.style.fontSize = '0.8rem';
                 el.style.borderRadius = '4px';
                 el.style.minHeight = '13px';
                 el.style.minWidth = '24px';
                 el.style.display = 'inline-flex';
                 el.style.alignItems = 'center';
-                el.style.justifyContent = 'center';
+                el.style.justifyContent = 'left';
                 el.style.lineHeight = '1';
                 el.style.boxSizing = 'border-box';
                 el.style.backgroundImage = 'none';
