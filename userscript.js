@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.26
+// @version      3.27
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -108,6 +108,7 @@
                 el.style.setProperty("color", style.color, "important");
                 el.style.setProperty("font-weight", "bold", "important");
                 el.style.setProperty("border", "none", "important");
+                el.title=rawText;
             }
 
             el.querySelectorAll('span').forEach(span => {
@@ -115,7 +116,6 @@
                 span.style.setProperty("color", "inherit", "important");
                 span.style.setProperty("font-size", "1em", "important");
                 span.style.setProperty("font-weight", "inherit", "important");
-                el.title=rawText;
             });
         });
     }
