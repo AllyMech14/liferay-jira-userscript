@@ -281,7 +281,7 @@
         const field = data.fields.customfield_12557?.[0];
 
         if (!field) {
-            throw new Error('"Organization Asset" missing or empty on ticket.');
+            throw new Error('"Organization Asset" not found');
         }
 
         // Return only necessary IDs
