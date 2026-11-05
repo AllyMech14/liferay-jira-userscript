@@ -579,31 +579,40 @@
         const isPartner = await fetchPartnerInfo(issueKey)
         if (!isPartner) return;
 
-    // Find the inner span with the visible name
-    const nameSpan = reporterContainer.querySelector('span._1reo15vq > span');
-    if (!nameSpan) {return;}
+        // Find the inner span with the visible name 
+        const trigger = reporterContainer.querySelector('[data-testid="user-profile-card-trigger-wrapper"]') || reporterContainer;
+        const nameSpan = [...trigger.querySelectorAll('span')].find(s =>
+            !s.hidden &&
+            !s.closest('[role="img"]') &&
+            s.children.length === 0 &&
+            s.textContent.trim()
+        );
+        if (!nameSpan) {
+            console.log('[SimpleP] Reporter name span not found, skipping.');
+            return;
+        }
 
-    // Avoid adding duplicates
-    if (reporterContainer.querySelector('.simple-p-icon')) {
-        console.log('[SimpleP] P icon already exists, skipping.');
-        return;
-    }
+        // Avoid adding duplicates
+        if (reporterContainer.querySelector('.simple-p-icon')) {
+            console.log('[SimpleP] P icon already exists, skipping.');
+            return;
+        }
 
-    // Create the P icon
-    const pIcon = document.createElement('span');
-    pIcon.textContent = '🅿️';
-    pIcon.classList.add('simple-p-icon');
-    pIcon.style.cssText = `
-        font-size: 16px;
-        margin-left: 5px;
-        font-weight: bold;
-        color: #0052CC;
-        vertical-align: middle;
-        display: inline-block;
-    `;
+        // Create the P icon
+        const pIcon = document.createElement('span');
+        pIcon.textContent = '🅿️';
+        pIcon.classList.add('simple-p-icon');
+        pIcon.style.cssText = `
+            font-size: 16px;
+            margin-left: 5px;
+            font-weight: bold;
+            color: #0052CC;
+            vertical-align: middle;
+            display: inline-block;
+        `;
 
-    // Append after the name span
-    nameSpan.after(pIcon);
+        // Append after the name span
+        nameSpan.after(pIcon);
     }
 
     /*********** ENTITLEMENT BADGE BAR ***********/
