@@ -3,8 +3,8 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.32
-// @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section + Entitlement markers
+// @version      3.33
+// @description  Jira statuses + Patcher, Account tickets and One Liferay link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section + Entitlement markers
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
 // @updateURL    https://github.com/AllyMech14/liferay-jira-userscript/raw/refs/heads/main/userscript.js
@@ -254,14 +254,13 @@
         createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
 
-    /*********** CUSTOMER PORTAL LINK FIELD ***********/
+    /*********** ONE LIFERAY LINK FIELD ***********/
 
-    // Cache for fetched data (more contained than unsafeWindow)
-    const customerPortalCache = {
+    // Cache for fetched Organization Asset data (more contained than unsafeWindow)
+    const organizationAssetCache = {
         issueKey: null,
         assetInfo: null,
-        externalKey: null,
-        koroneikiKey: null,
+        keys: null, // { koroneikiKey, salesforceId, projectId }
         promise: null // To prevent concurrent fetches
     };
 
@@ -298,89 +297,114 @@
         return attr?.objectAttributeValues?.[0]?.value ?? null;
     }
 
-    // 3. Fetch object from gateway API and extract External Key (Customer Portal) and Koroneiki Key (Raysource)
-    async function fetchAssetKeys(workspaceId, objectId) {
+    // Fetch an asset object from the gateway API
+    async function fetchAssetObject(workspaceId, objectId) {
         const url = `/gateway/api/jsm/assets/workspace/${workspaceId}/v1/object/${objectId}?includeExtendedInfo=false`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Gateway API failed (${res.status}) for ${url}`);
-        const data = await res.json();
+        return res.json();
+    }
 
-        const externalKey = getAssetAttributeValue(data, 'External Key');
-        if (!externalKey) {
-            throw new Error('External Key not found in asset attributes.');
+    // Get the Salesforce account id: "Entity Id" of the "account" External Link with Domain "salesforce"
+    async function fetchSalesforceAccountId(workspaceId, organizationAsset) {
+        const accountLinks = organizationAsset.attributes
+            .filter(attr => attr.objectTypeAttribute.name === 'External Links')
+            .flatMap(attr => attr.objectAttributeValues || [])
+            .map(value => value.referencedObject)
+            .filter(linkObject => linkObject?.label === 'account');
+
+        for (const accountLink of accountLinks) {
+            const link = await fetchAssetObject(workspaceId, accountLink.id);
+            if (getAssetAttributeValue(link, 'Domain') === 'salesforce') {
+                return getAssetAttributeValue(link, 'Entity Id');
+            }
         }
 
-        const koroneikiKey = getAssetAttributeValue(data, 'Koroneiki Key');
+        console.warn('Salesforce account External Link not found in asset attributes, One Liferay link will not be available.');
+        return null;
+    }
+
+    // 3. Fetch the Organization Asset and extract Koroneiki Key (Raysource), Salesforce account id and project id (One Liferay)
+    async function fetchAssetKeys(workspaceId, objectId) {
+        const organizationAsset = await fetchAssetObject(workspaceId, objectId);
+
+        const koroneikiKey = getAssetAttributeValue(organizationAsset, 'Koroneiki Key');
         if (!koroneikiKey) {
             console.warn('Koroneiki Key not found in asset attributes, Raysource link will not be available.');
         }
 
-        return { externalKey, koroneikiKey };
+        // The One Liferay project id is the Organization Asset's External Key
+        const projectId = getAssetAttributeValue(organizationAsset, 'External Key');
+        if (!projectId) {
+            console.warn('External Key not found in asset attributes, One Liferay link will point to the account root.');
+        }
+
+        const salesforceId = await fetchSalesforceAccountId(workspaceId, organizationAsset);
+
+        return { koroneikiKey, salesforceId, projectId };
     }
 
     // 4. Main function to fetch all data, with caching and concurrency control
-    async function fetchCustomerPortalData(issueKey) {
+    async function fetchOrganizationAssetData(issueKey) {
         // Check cache first
-        if (customerPortalCache.issueKey === issueKey && customerPortalCache.externalKey) {
-            return { externalKey: customerPortalCache.externalKey, koroneikiKey: customerPortalCache.koroneikiKey };
+        if (organizationAssetCache.issueKey === issueKey && organizationAssetCache.keys) {
+            return organizationAssetCache.keys;
         }
 
         // Clear cache if issue key changes
-        if (customerPortalCache.issueKey !== issueKey) {
-            customerPortalCache.issueKey = issueKey;
-            customerPortalCache.assetInfo = null;
-            customerPortalCache.externalKey = null;
-            customerPortalCache.koroneikiKey = null;
-            customerPortalCache.promise = null; // Clear previous promise
+        if (organizationAssetCache.issueKey !== issueKey) {
+            organizationAssetCache.issueKey = issueKey;
+            organizationAssetCache.assetInfo = null;
+            organizationAssetCache.keys = null;
+            organizationAssetCache.promise = null; // Clear previous promise
         }
 
         // Return existing fetch promise to avoid concurrent requests
-        if (customerPortalCache.promise) {
-            return customerPortalCache.promise;
+        if (organizationAssetCache.promise) {
+            return organizationAssetCache.promise;
         }
 
         // Start a new fetch sequence
-        customerPortalCache.promise = (async () => {
+        organizationAssetCache.promise = (async () => {
             try {
                 const assetInfo = await fetchAssetInfo(issueKey);
-                customerPortalCache.assetInfo = assetInfo;
+                organizationAssetCache.assetInfo = assetInfo;
 
-                const { externalKey, koroneikiKey } = await fetchAssetKeys(assetInfo.workspaceId, assetInfo.objectId);
-                customerPortalCache.externalKey = externalKey;
-                customerPortalCache.koroneikiKey = koroneikiKey;
+                const keys = await fetchAssetKeys(assetInfo.workspaceId, assetInfo.objectId);
+                organizationAssetCache.keys = keys;
 
-                return { externalKey, koroneikiKey };
+                return keys;
             } catch (error) {
-                console.error('Failed to get Customer Portal Data:', error.message);
+                console.error('Failed to get Organization Asset Data:', error.message);
                 // Clear cache/promise on failure to allow retry
-                customerPortalCache.assetInfo = null;
-                customerPortalCache.externalKey = null;
-                customerPortalCache.koroneikiKey = null;
-                customerPortalCache.promise = null;
+                organizationAssetCache.assetInfo = null;
+                organizationAssetCache.keys = null;
+                organizationAssetCache.promise = null;
                 throw error; // Propagate error
             }
         })();
 
-        return customerPortalCache.promise;
+        return organizationAssetCache.promise;
     }
 
-    // 5. Build the customer portal URL
-    function getCustomerPortalHref(externalKey) {
-        return externalKey ? `https://support.liferay.com/project/#/${externalKey}` : null;
+    // 5. Build the One Liferay URL
+    function getOneLiferayHref(salesforceId, projectId) {
+        if (!salesforceId) return null;
+        const accountUrl = `https://one.liferay.com/my-account/#/${encodeURIComponent(salesforceId)}`;
+        return projectId ? `${accountUrl}/project/${encodeURIComponent(projectId)}` : accountUrl;
     }
 
 
     // 6. Main function to create and insert the field (handles UI updates only)
-    function createCustomerPortalField({ afterFieldClass = null }) {
+    function createOneLiferayField({ afterFieldClass = null }) {
         const issueKey = getIssueKey();
         if (!issueKey) return;
 
         const callbackFn = async () => {
-            const { externalKey } = await fetchCustomerPortalData(issueKey);
-            const url = externalKey ? `https://support.liferay.com/project/#/${externalKey}` : null;
-            return { url, name: externalKey };
+            const { salesforceId, projectId } = await fetchOrganizationAssetData(issueKey);
+            return { url: getOneLiferayHref(salesforceId, projectId), name: projectId ?? salesforceId };
         }
-        const newField = { heading: 'Customer Portal', class: 'customer-portal-link-field' }
+        const newField = { heading: 'One Liferay', class: 'one-liferay-link-field' }
 
         createPanelFieldLink({ newField, callbackFn, afterFieldClass })
     }
@@ -2018,7 +2042,7 @@
         if (!issueKey) return;
 
         const callbackFn = async () => {
-            const { koroneikiKey } = await fetchCustomerPortalData(issueKey);
+            const { koroneikiKey } = await fetchOrganizationAssetData(issueKey);
             const url = koroneikiKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${encodeURIComponent(koroneikiKey)}` : null
             return { url, name: koroneikiKey };
         }
@@ -2037,8 +2061,8 @@
         const ticketType = getTicketType();
         if (!['LRHC', 'LRFLS'].includes(ticketType)) return; // Only run for allowed types
 
-        createCustomerPortalField({});
-        createProvisioningPortalFields({ afterFieldClass: 'customer-portal-link-field' });
+        createOneLiferayField({});
+        createProvisioningPortalFields({ afterFieldClass: 'one-liferay-link-field' });
         createPatcherField({ afterFieldClass: 'raysource-link-field' });
         createJiraFilterLinkField({ afterFieldClass: 'patcher-link-field' });
     }
