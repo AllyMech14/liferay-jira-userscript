@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.31
+// @version      3.32
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section + Entitlement markers
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -261,6 +261,7 @@
         issueKey: null,
         assetInfo: null,
         externalKey: null,
+        koroneikiKey: null,
         promise: null // To prevent concurrent fetches
     };
 
@@ -291,25 +292,37 @@
         };
     }
 
-    // 3. Fetch object from gateway API and extract External Key
-    async function fetchExternalKey(workspaceId, objectId) {
+    // Get the first value of an asset attribute by its name, or null if missing
+    function getAssetAttributeValue(assetObject, name) {
+        const attr = assetObject.attributes.find(attr => attr.objectTypeAttribute.name === name);
+        return attr?.objectAttributeValues?.[0]?.value ?? null;
+    }
+
+    // 3. Fetch object from gateway API and extract External Key (Customer Portal) and Koroneiki Key (Raysource)
+    async function fetchAssetKeys(workspaceId, objectId) {
         const url = `/gateway/api/jsm/assets/workspace/${workspaceId}/v1/object/${objectId}?includeExtendedInfo=false`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Gateway API failed (${res.status}) for ${url}`);
         const data = await res.json();
 
-        const extAttr = data.attributes.find(attr => attr.objectTypeAttribute.name === 'External Key');
-        if (!extAttr || !extAttr.objectAttributeValues.length) {
+        const externalKey = getAssetAttributeValue(data, 'External Key');
+        if (!externalKey) {
             throw new Error('External Key not found in asset attributes.');
         }
-        return extAttr.objectAttributeValues[0].value;
+
+        const koroneikiKey = getAssetAttributeValue(data, 'Koroneiki Key');
+        if (!koroneikiKey) {
+            console.warn('Koroneiki Key not found in asset attributes, Raysource link will not be available.');
+        }
+
+        return { externalKey, koroneikiKey };
     }
 
     // 4. Main function to fetch all data, with caching and concurrency control
     async function fetchCustomerPortalData(issueKey) {
         // Check cache first
         if (customerPortalCache.issueKey === issueKey && customerPortalCache.externalKey) {
-            return customerPortalCache.externalKey;
+            return { externalKey: customerPortalCache.externalKey, koroneikiKey: customerPortalCache.koroneikiKey };
         }
 
         // Clear cache if issue key changes
@@ -317,6 +330,7 @@
             customerPortalCache.issueKey = issueKey;
             customerPortalCache.assetInfo = null;
             customerPortalCache.externalKey = null;
+            customerPortalCache.koroneikiKey = null;
             customerPortalCache.promise = null; // Clear previous promise
         }
 
@@ -331,15 +345,17 @@
                 const assetInfo = await fetchAssetInfo(issueKey);
                 customerPortalCache.assetInfo = assetInfo;
 
-                const externalKey = await fetchExternalKey(assetInfo.workspaceId, assetInfo.objectId);
+                const { externalKey, koroneikiKey } = await fetchAssetKeys(assetInfo.workspaceId, assetInfo.objectId);
                 customerPortalCache.externalKey = externalKey;
+                customerPortalCache.koroneikiKey = koroneikiKey;
 
-                return externalKey;
+                return { externalKey, koroneikiKey };
             } catch (error) {
                 console.error('Failed to get Customer Portal Data:', error.message);
                 // Clear cache/promise on failure to allow retry
                 customerPortalCache.assetInfo = null;
                 customerPortalCache.externalKey = null;
+                customerPortalCache.koroneikiKey = null;
                 customerPortalCache.promise = null;
                 throw error; // Propagate error
             }
@@ -360,7 +376,7 @@
         if (!issueKey) return;
 
         const callbackFn = async () => {
-            const externalKey = await fetchCustomerPortalData(issueKey);
+            const { externalKey } = await fetchCustomerPortalData(issueKey);
             const url = externalKey ? `https://support.liferay.com/project/#/${externalKey}` : null;
             return { url, name: externalKey };
         }
@@ -2002,9 +2018,9 @@
         if (!issueKey) return;
 
         const callbackFn = async () => {
-            const externalKey = await fetchCustomerPortalData(issueKey);
-            const url = externalKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${externalKey}` : null
-            return { url, name: externalKey };
+            const { koroneikiKey } = await fetchCustomerPortalData(issueKey);
+            const url = koroneikiKey ? `https://provisioning.liferay.com/group/guest/~/control_panel/manage?p_p_id=com_liferay_osb_provisioning_web_portlet_AccountsPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_mvcRenderCommandName=%2Faccounts%2Fview_account&_com_liferay_osb_provisioning_web_portlet_AccountsPortlet_accountKey=${encodeURIComponent(koroneikiKey)}` : null
+            return { url, name: koroneikiKey };
         }
         const newField = { heading: 'Raysource', class: 'raysource-link-field' }
 
