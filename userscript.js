@@ -3,7 +3,7 @@
 // @author       Ally, Rita, Dmcisneros
 // @icon         https://www.liferay.com/o/classic-theme/images/favicon.ico
 // @namespace    https://liferay.atlassian.net/
-// @version      3.30
+// @version      3.31
 // @description  Jira statuses + Patcher, Account tickets and CP Link field + Internal Note highlight + Auto Expand CCC Info + colorize solution proposed + Internal Request Warning + Large File Attachment section + Entitlement markers
 // @match        https://liferay.atlassian.net/*
 // @match        https://liferay-sandbox-424.atlassian.net/*
@@ -372,6 +372,17 @@
 
     /*********** INTERNAL NOTE HIGHLIGHT ***********/
 
+    // Stable wrappers around the editor, most specific first
+    const EDITOR_WRAPPER_SELECTORS = ['.ak-editor-content-area', '.akEditor'];
+
+    function findEditorWrapper(editor) {
+        for (const selector of EDITOR_WRAPPER_SELECTORS) {
+            const wrapper = editor.closest(selector);
+            if (wrapper) return wrapper;
+        }
+        return null;
+    }
+
     function highlightEditor() {
         // Check if the issue transition modal is being used
         const transitionModal = document.querySelector('section[data-testid="issue-transition.ui.issue-transition-modal"]');
@@ -381,43 +392,43 @@
         if (transitionModal) {
             const commentContainer = transitionModal.querySelector('#comment-container');
             if (commentContainer) {
-                editorWrapper = commentContainer.querySelector('.css-sox1a6');
                 editor = commentContainer.querySelector('#ak-editor-textarea') || commentContainer.querySelector('textarea');
                 internalNoteButton = document.getElementById('issue-transition-comment-editor-container-tabs-0');
             }
 
         } else {
-            editorWrapper = document.querySelector('.css-sox1a6');
             editor = document.querySelector('#ak-editor-textarea');
             internalNoteButton = document.querySelector('#comment-editor-container-tabs-0');
         }
 
+        if (editor) editorWrapper = findEditorWrapper(editor);
+
         const isInternalSelected = internalNoteButton && internalNoteButton.getAttribute('aria-selected') === 'true';
 
-        if (isInternalSelected) {
+        if (isInternalSelected && editor) {
+
+            // Paint every container from the editor up to the wrapper, otherwise their own background hides the yellow
+            for (let el = editor; el; el = el.parentElement) {
+                el.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
+                el.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
+                el.setAttribute('data-internal-note-highlight', '');
+                if (!editorWrapper || el === editorWrapper) break;
+            }
 
             if (editorWrapper) {
-                editorWrapper.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
                 editorWrapper.style.setProperty('border', '2px solid #FFD700', 'important'); // golden border
-                editorWrapper.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
 
                 //Added back color font for Internal Note on Dark Mode
                 editorWrapper.style.setProperty('color', '#000000', 'important'); // back color font
             }
-            if (editor) {
-                editor.style.setProperty('background-color', '#FFFACD', 'important'); // pale yellow
-                editor.style.setProperty('transition', 'background-color 0.3s, border 0.3s', 'important');
-            }
         } else {
             //If not internal note Remove highlight
-            if (editorWrapper) {
-                editorWrapper.style.removeProperty('background-color');
-                editorWrapper.style.removeProperty('border');
-                editorWrapper.style.removeProperty('color');
-            }
-            if (editor) {
-                editor.style.removeProperty('background-color');
-            }
+            document.querySelectorAll('[data-internal-note-highlight]').forEach(el => {
+                el.style.removeProperty('background-color');
+                el.style.removeProperty('border');
+                el.style.removeProperty('color');
+                el.removeAttribute('data-internal-note-highlight');
+            });
         }
     }
 
